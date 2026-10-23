@@ -1,5 +1,5 @@
 [project]
-name = "payment-gateway"
+name = "payment-recon"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
@@ -24,6 +24,8 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
+    "delta-spark>=4.4.1",
+    "pyspark>=4.2.0",
     "pytest>=9.1.1",
     "ruff>=0.17.2",
 ]
