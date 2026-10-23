@@ -1,0 +1,29 @@
+[project]
+name = "payment-gateway"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "hmty11", email = "darrenjeho@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "apache-airflow>=3.3.2",
+    "boto3>=1.43.118",
+    "dbt-core>=1.12.5",
+    "dbt-databricks>=1.12.7",
+    "pandas>=3.1.0",
+]
+
+[project.scripts]
+payment-gateway-settlement-reconciliation-engine = "payment_gateway_settlement_reconciliation_engine:main"
+
+[build-system]
+requires = ["uv_build>=0.12.18,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "ruff>=0.17.2",
+]
