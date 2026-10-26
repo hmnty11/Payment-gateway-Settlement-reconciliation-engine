@@ -2244,6 +2244,7 @@ dependencies = [
     { name = "dbt-core" },
     { name = "dbt-databricks" },
     { name = "pandas" },
+    { name = "python-dotenv" },
 ]
 
 [package.dev-dependencies]
@@ -2261,6 +2262,7 @@ requires-dist = [
     { name = "dbt-core", specifier = ">=1.12.5" },
     { name = "dbt-databricks", specifier = ">=1.12.7" },
     { name = "pandas", specifier = ">=3.1.0" },
+    { name = "python-dotenv", specifier = ">=1.2.4" },
 ]
 
 [package.metadata.requires-dev]
