@@ -1,3 +1,5 @@
+import pytest
+
 from payment_recon.config import detect_environment, resolve_storage_paths
 
 
@@ -45,7 +47,42 @@ def test_resolve_storage_paths_local():
 
     storage_paths = resolve_storage_paths(mode="local")
 
-    assert storage_paths["webhooks"].startswith("s3a://payment-recon/")
-    assert storage_paths["settlements"].startswith("s3a://payment-recon/")
-    assert storage_paths["fx_rates"].startswith("s3a://payment-recon/")
-    assert storage_paths["silver"].startswith("s3a://payment-recon/")
+    assert storage_paths["webhooks"].startswith("s3a://payment-recon/raw/webhooks")
+    assert storage_paths["settlements"].startswith(
+        "s3a://payment-recon/raw/settlements"
+    )
+    assert storage_paths["fx_rates"].startswith("s3a://payment-recon/raw/fx_rates")
+    assert storage_paths["silver"].startswith("s3a://payment-recon/silver")
+
+
+def test_resolve_storage_paths_databricks():
+
+    storage_paths = resolve_storage_paths(mode="databricks")
+
+    assert storage_paths["webhooks"].startswith(
+        "/Volumes/main/payment_recon/raw/webhooks"
+    )
+    assert storage_paths["settlements"].startswith(
+        "/Volumes/main/payment_recon/raw/settlements"
+    )
+    assert storage_paths["fx_rates"].startswith(
+        "/Volumes/main/payment_recon/raw/fx_rates"
+    )
+    assert storage_paths["silver"].startswith("/Volumes/main/payment_recon/silver")
+
+
+def test_resolve_storage_paths_custom_name_bucket():
+
+    storage_paths = resolve_storage_paths(mode="local", bucket_name="custom-bucket")
+
+    assert storage_paths["webhooks"].startswith("s3a://custom-bucket/raw/webhooks")
+    assert storage_paths["settlements"].startswith(
+        "s3a://custom-bucket/raw/settlements"
+    )
+    assert storage_paths["fx_rates"].startswith("s3a://custom-bucket/raw/fx_rates")
+    assert storage_paths["silver"].startswith("s3a://custom-bucket/silver")
+
+
+def test_resolve_storage_paths_invalid_mode_raises_error():
+    with pytest.raises(ValueError):
+        resolve_storage_paths(mode="aws")

@@ -53,9 +53,29 @@ def resolve_storage_paths(
     Returns:
         dict: Berisi key 'webhooks', 'settlements', 'fx_rates', dan 'silver'.
     """
-    # [TODO: Anda tulis penentuan path di sini berdasarkan mode]
 
-    return {}
+    normalized_mode = mode.strip().lower()
+
+    if normalized_mode not in ("local", "databricks"):
+        print("mode inputted not supported, supported mode(local or databricks)")
+        raise ValueError
+
+    # base path
+
+    if normalized_mode == "local":
+        base_path = f"s3a://{bucket_name}"
+
+    elif normalized_mode == "databricks":
+        base_path = "/Volumes/main/payment_recon"
+
+    storage_paths = {
+        "webhooks": f"{base_path}/raw/webhooks",
+        "settlements": f"{base_path}/raw/settlements",
+        "fx_rates": f"{base_path}/raw/fx_rates",
+        "silver": f"{base_path}/silver",
+    }
+
+    return storage_paths
 
 
 # ===============================================================
