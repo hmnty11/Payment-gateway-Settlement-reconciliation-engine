@@ -1,3 +1,4 @@
+import pytest
 from pyspark.sql import SparkSession
 
 from payment_recon.config import MINIO_ENDPOINT
@@ -18,3 +19,8 @@ def test_get_spark_session_local_minio_config():
         assert spark.conf.get("spark.hadoop.fs.s3a.endpoint") == MINIO_ENDPOINT
     finally:
         spark.stop()
+
+
+def test_get_spark_session_mismatch_mode():
+    with pytest.raises(ValueError):
+        get_spark_session(env_mode="aws")
