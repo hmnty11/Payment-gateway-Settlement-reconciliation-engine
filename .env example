@@ -1,0 +1,6 @@
+# env mode untuk memnentukan config.py mana yang akan dijalankan 
+ENV_MODE= local
+
+# minio credentials 
+MINIO_ROOT_USER= user123
+MINIO_ROOT_PASSWORD= 892923293
