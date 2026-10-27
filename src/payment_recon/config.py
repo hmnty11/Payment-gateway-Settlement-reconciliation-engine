@@ -27,14 +27,13 @@ def detect_environment(env_source: Mapping[str, str] | None = None) -> str:
 
     if raw_mode is not None:
         raw_mode = raw_mode.strip().lower()
+        return raw_mode
 
     elif "DATABRICKS_RUNTIME_VERSION" in source:
         return "databricks"
 
     else:
         return "local"
-
-    return raw_mode
 
 
 def resolve_storage_paths(
@@ -57,11 +56,9 @@ def resolve_storage_paths(
     normalized_mode = mode.strip().lower()
 
     if normalized_mode not in ("local", "databricks"):
-        print("mode inputted not supported, supported mode(local or databricks)")
-        raise ValueError
+        raise ValueError("mode inputted not supported, use 'local' or 'databricks'")
 
     # base path
-
     if normalized_mode == "local":
         base_path = f"s3a://{bucket_name}"
 
