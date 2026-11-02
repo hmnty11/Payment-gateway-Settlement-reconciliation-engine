@@ -5,6 +5,8 @@ from faker import Faker
 
 fake = Faker()
 
+currency = ["IDR", "USD", "SGD", "EUR"]
+
 
 def generate_single_webhook(is_anomaly: bool = False) -> dict:
 
@@ -26,7 +28,7 @@ def generate_single_webhook(is_anomaly: bool = False) -> dict:
                 ["credit_card", "bank_transfer", "qris", "e_wallet"]
             ),
             "amount": round(random.uniform(10000.0, 100000.0), 2),
-            "currency": random.choice(["IDR", "USD", "SGD", "EUR"]),
+            "currency": random.choice(currency),
             "attempts": [
                 {
                     "attempt_no": 1,
@@ -51,11 +53,36 @@ def generate_single_webhook(is_anomaly: bool = False) -> dict:
         },
     }
 
+    if is_anomaly:
+        anomaly = random.choice(
+            ["missing_or_invalid_id", "invalid_amount", "invalid_currency"]
+        )
+        if anomaly == "missing_or_invalid_id":
+            webhook_json["transaction"]["transaction_id"] = None
+
+        elif anomaly == "invalid_amount":
+            webhook_json["transaction"]["amount"] = random.choice(
+                [None, round(random.uniform(-1000000.0, -10000.0), 2)]
+            )
+
+        elif anomaly == "invalid_currency":
+            webhook_json["transaction"]["currency"] = random.choice(
+                ["BTC", "ENRE", "XXXX", "INVALID"]
+            )
+
     return webhook_json
 
 
 def generate_batch_webhook(count: int = 10, anomaly_rate: float = 0.05) -> list[dict]:
 
-    batch_webhook = [generate_single_webhook() for _ in range(count)]
+    batch_webhook = [
+        generate_single_webhook(is_anomaly=random.random() < anomaly_rate)
+        for _ in range(count)
+    ]
 
     return batch_webhook
+
+
+def save_batch_to_json(data: list[dict], path: str = "./data_sample/bronze_webhook/"):
+
+    pass

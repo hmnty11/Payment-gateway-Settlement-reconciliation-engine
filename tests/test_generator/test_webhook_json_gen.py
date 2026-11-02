@@ -1,6 +1,11 @@
+import json
 from datetime import datetime
 
-from data_gen.webhook_json_gen import generate_batch_webhook, generate_single_webhook
+from data_gen.webhook_json_gen import (
+    generate_batch_webhook,
+    generate_single_webhook,
+    save_batch_to_json,
+)
 
 
 def test_generate_batch_volume():
@@ -87,7 +92,7 @@ def test_webhook_data_integrity():
     assert webhook_data["transaction"]["transaction_id"].startswith("trx_")
     assert webhook_data["transaction"]["reference_id"].startswith("ref_")
 
-    assert webhook_data["transaction"]["amount"] >= 0
+    assert webhook_data["transaction"]["amount"] > 0
 
     currency = ["IDR", "USD", "SGD", "EUR"]
     assert webhook_data["transaction"]["currency"] in currency
@@ -110,3 +115,49 @@ def test_webhook_anomaly_data():
             or tx.get("amount") <= 0
             or tx.get("currency") not in currency
         ), f"failed to load anomalies: {tx}"
+
+
+def test_generate_batch_anomaly_rate():
+    currency = ["IDR", "USD", "SGD", "EUR"]
+
+    data_bersih = generate_batch_webhook(anomaly_rate=0.0)
+    for item in data_bersih:
+        assert item["event_id"].startswith("evt_")
+        assert item["transaction"]["transaction_id"].startswith("trx_")
+        assert item["transaction"]["reference_id"].startswith("ref_")
+
+        assert item["transaction"]["amount"] > 0
+
+        assert item["transaction"]["currency"] in currency
+
+        parsed_time = datetime.fromisoformat(item["timestamp"])
+        assert parsed_time is not None
+
+    data_rusak = generate_batch_webhook(anomaly_rate=1.0)
+
+    for item in data_rusak:
+        tx = item["transaction"]
+
+        assert (
+            tx.get("transaction_id") is None
+            or not str(tx.get("transaction_id")).startswith("trx_")
+            or tx.get("amount") is None
+            or not isinstance(tx.get("amount"), (int, float))
+            or tx.get("amount") <= 0
+            or tx.get("currency") not in currency
+        ), f"failed to load anomalies: {tx}"
+
+
+def test_save_batch_to_json_creates_file_and_content_matches(tmp_path):
+    count = 3
+    data_asli = generate_batch_webhook(count)
+    test_dir = tmp_path / "bronze_webhooks"
+
+    result_path_dir = save_batch_to_json(data_asli, test_dir)
+
+    assert result_path_dir.exists()
+    assert result_path_dir.is_file()
+
+    with open(result_path_dir, encoding="utf-8") as f:
+        file_json = json.load(f)
+    assert file_json == data_asli
