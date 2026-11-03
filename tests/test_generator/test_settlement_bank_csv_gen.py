@@ -1,6 +1,7 @@
+from datetime import datetime
+
 from data_gen.settlement_bank_csv_gen import single_settlement
 from data_gen.webhook_json_gen import generate_batch_webhook
-from datetime import datetime
 
 
 def test_settlement_schema_datatypes():
@@ -49,5 +50,5 @@ def test_settlement_matches_webhook_transaction_id():
     target_webhook = webhooks[0]
     expected_trx_id = target_webhook["transaction"]["transaction_id"]
 
-    settlement = single_settlement(webhook_record=target_webhook)
+    settlement = single_settlement(webhook_data=target_webhook)
     assert settlement["transaction_id"] == expected_trx_id
