@@ -1,5 +1,7 @@
+import json
 import random
-from datetime import UTC
+from datetime import UTC, datetime
+from pathlib import Path
 
 from faker import Faker
 
@@ -83,6 +85,21 @@ def generate_batch_webhook(count: int = 10, anomaly_rate: float = 0.05) -> list[
     return batch_webhook
 
 
-def save_batch_to_json(data: list[dict], path: str = "./data_sample/bronze_webhook/"):
+def save_batch_to_json(
+    data: list[dict],
+    path: Path | str = "./data_sample/bronze_webhook/",
+    file_name: str | None = None,
+) -> Path:
 
-    pass
+    target_dir = Path(path)
+    target_dir.mkdir(parents=True, exist_ok=True)
+
+    if file_name is None:
+        file_name = datetime.now(UTC).strftime("webhook_batch_%Y%m%d_%H%M%S.json")
+
+    target_file_path = target_dir / file_name
+
+    with open(target_file_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+    return target_file_path
