@@ -87,7 +87,7 @@ def generate_batch_webhook(count: int = 10, anomaly_rate: float = 0.05) -> list[
 
 def save_batch_to_json(
     data: list[dict],
-    path: Path | str = "./data_sample/bronze_webhook/",
+    path: Path | str = "./data_sample/bronze_webhook",
     file_name: str | None = None,
 ) -> Path:
 
@@ -103,3 +103,8 @@ def save_batch_to_json(
         json.dump(data, f, indent=2, ensure_ascii=False)
 
     return target_file_path
+
+
+if __name__ == "__main__":
+    batch = generate_batch_webhook(count=100, anomaly_rate=0.10)
+    path = save_batch_to_json(data=batch)
