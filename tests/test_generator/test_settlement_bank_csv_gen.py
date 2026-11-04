@@ -1,8 +1,10 @@
+import csv
 from datetime import datetime
 
 from data_gen.settlement_bank_csv_gen import (
-    single_settlement,
     generate_batch_settlement,
+    save_batch_csv,
+    single_settlement,
 )
 from data_gen.webhook_json_gen import generate_batch_webhook
 
@@ -106,3 +108,33 @@ def test_batch_settlement():
             == round(row["gross_amount"] - row["fee_amount"], 2)
             and (settlement_date - transaction_date).days <= 3
         )
+
+
+def test_save_batch_csv(tmp_path):
+    batch_data = generate_batch_settlement(count=5, anomaly_rate=0.0)
+
+    expected_keys = [
+        "settlement_id",
+        "transaction_id",
+        "transaction_date",
+        "settlement_date",
+        "gross_amount",
+        "fee_amount",
+        "net_settled_amount",
+        "settlement_currency",
+        "applied_fx_rate",
+        "bank_name",
+    ]
+
+    path_target = tmp_path / "test_settlement.csv"
+    save_batch_csv(batch_data=batch_data, path=path_target)
+
+    assert path_target.exists()
+    with open(path_target, "r") as f:
+        reader = csv.DictReader(f)
+        assert set(reader.fieldnames) == set(expected_keys)
+
+        rows = list(reader)
+
+    assert len(rows) == 5
+    assert batch_data[0]["transaction_id"] == rows[0]["transaction_id"]

@@ -1,5 +1,7 @@
+import csv
 import random
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 from faker import Faker
 
@@ -90,3 +92,32 @@ def generate_batch_settlement(
             batch_settlement.append(result)
 
     return batch_settlement
+
+
+def save_batch_csv(
+    batch_data: list[dict] | None = None,
+    path: Path | str = "./data_sample/bronze_settlement",
+    file_name: str | None = None,
+) -> Path:
+    target_path = Path(path)
+
+    if target_path.suffix.lower() == ".csv":
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        target_file_path = target_path
+
+    else:
+        target_path.mkdir(parents=True, exist_ok=True)
+
+        if file_name is None:
+            file_name = datetime.now(UTC).strftime("settlement_batch_%Y%m%d_%H%M%S.csv")
+        target_file_path = target_path / file_name
+
+    if not batch_data:
+        return target_file_path
+
+    with open(target_file_path, "w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=list(batch_data[0].keys()))
+        writer.writeheader()
+        writer.writerows(batch_data)
+
+    return target_file_path
