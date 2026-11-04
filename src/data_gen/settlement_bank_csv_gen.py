@@ -37,7 +37,22 @@ def single_settlement(
     gross_amount = round(raw_amount * fx_rate, 2)
     fee_amount = round(gross_amount * random.uniform(0.01, 0.015), 2)
     net_settled_amount = round(gross_amount - fee_amount, 2)
-    settlement_date = tx_datetime + timedelta(days=random.randint(1, 14))
+    settlement_date = tx_datetime + timedelta(days=random.randint(1, 2))
+
+    # generates anomalies
+    if is_anomaly:
+        anomaly = random.choice(["amount_mismatch", "ghost_payment", "late_settlement"])
+
+        if anomaly == "amount_mismatch":
+            gross_amount = round(
+                gross_amount + gross_amount * random.uniform(0.05, 0.15), 2
+            )
+
+        elif anomaly == "ghost_payment":
+            transaction_id = "trx_" + fake.hexify(text="^^^^^^^^^^^^")
+
+        elif anomaly == "late_settlement":
+            settlement_date = tx_datetime + timedelta(days=random.randint(4, 14))
 
     # dictionary
     settlement_data = {
@@ -54,3 +69,24 @@ def single_settlement(
     }
 
     return settlement_data
+
+
+def generate_batch_settlement(
+    webhook_data: list[dict] | None = None, count: int = 10, anomaly_rate: float = 0.05
+) -> list[dict]:
+
+    batch_settlement = []
+    if webhook_data is not None:
+        for wh in webhook_data:
+            result = single_settlement(
+                webhook_data=wh, is_anomaly=random.random() < anomaly_rate
+            )
+            batch_settlement.append(result)
+    else:
+        for _ in range(count):
+            result = single_settlement(
+                webhook_data=webhook_data, is_anomaly=random.random() < anomaly_rate
+            )
+            batch_settlement.append(result)
+
+    return batch_settlement
