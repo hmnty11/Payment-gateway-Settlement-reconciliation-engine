@@ -120,8 +120,8 @@ def test_webhook_anomaly_data():
 def test_generate_batch_anomaly_rate():
     currency = ["IDR", "USD", "SGD", "EUR"]
 
-    data_bersih = generate_batch_webhook(anomaly_rate=0.0)
-    for item in data_bersih:
+    clean_data = generate_batch_webhook(anomaly_rate=0.0)
+    for item in clean_data:
         assert item["event_id"].startswith("evt_")
         assert item["transaction"]["transaction_id"].startswith("trx_")
         assert item["transaction"]["reference_id"].startswith("ref_")
@@ -133,9 +133,9 @@ def test_generate_batch_anomaly_rate():
         parsed_time = datetime.fromisoformat(item["timestamp"])
         assert parsed_time is not None
 
-    data_rusak = generate_batch_webhook(anomaly_rate=1.0)
+    data_with_anomaly = generate_batch_webhook(anomaly_rate=1.0)
 
-    for item in data_rusak:
+    for item in data_with_anomaly:
         tx = item["transaction"]
 
         assert (
@@ -150,14 +150,14 @@ def test_generate_batch_anomaly_rate():
 
 def test_save_batch_to_json_creates_file_and_content_matches(tmp_path):
     count = 3
-    data_asli = generate_batch_webhook(count)
+    webhook_data = generate_batch_webhook(count)
     test_dir = tmp_path / "bronze_webhooks"
 
-    result_path_dir = save_batch_to_json(data_asli, test_dir)
+    result_path_dir = save_batch_to_json(webhook_data, test_dir)
 
     assert result_path_dir.exists()
     assert result_path_dir.is_file()
 
     with open(result_path_dir, encoding="utf-8") as f:
         file_json = json.load(f)
-    assert file_json == data_asli
+    assert file_json == webhook_data
