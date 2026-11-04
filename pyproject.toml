@@ -24,6 +24,7 @@ build-backend = "uv_build"
 dev = [
     "delta-spark>=4.4.1",
     "faker>=40.44.0",
+    "moto>=5.2.5",
     "pyspark>=4.2.0",
     "pytest>=9.1.1",
     "python-semantic-release>=10.7.0",
