@@ -27,7 +27,6 @@ def ensure_bucket_exists(bucket_name: str, s3_client: str | None = None) -> None
     """
 
 
-
 def upload_file(
     file_path: Path | str,
     bucket_name: str,
