@@ -30,5 +30,5 @@ def test_ensure_bucket_exists_when_not_found():
 
     mock_s3_client.create_bucket.assert_called_once_with(Bucket="test-bucket")
 
-def test_ensure_bucket_exists_when_found():
-    
+
+# def test_ensure_bucket_exists_when_found():
