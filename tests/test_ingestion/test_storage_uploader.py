@@ -1,8 +1,6 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-from botocore.exceptions import ClientError
-
-from ingestion.storage_uploader import ensure_bucket_exists, get_s3_client
+from ingestion.storage_uploader import get_s3_client
 from payment_recon.config import MINIO_ACCESS_KEY, MINIO_ENDPOINT, MINIO_SECRET_KEY
 
 
