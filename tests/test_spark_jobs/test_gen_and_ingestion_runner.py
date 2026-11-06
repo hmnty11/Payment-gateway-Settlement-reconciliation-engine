@@ -24,7 +24,7 @@ def test_single_day_default_fallback():
     run_date_range_ingestion(start_date=2025 - 3 - 12, s3_client=mock_s3_client)
 
     mock_s3_client.run_daily_ingestion.assert_called_once_with(
-        "2025-3-12", 100, "data_sample/", "payment-recon"
+        2025 - 3 - 12, 100, "data_sample/", "payment-recon"
     )
 
     # note: have to be the same date with the same date
@@ -32,5 +32,18 @@ def test_single_day_default_fallback():
     mock_s3_client.generate_batch_settlement.assert_called()
     mock_s3_client.upload_file_to_bucket.assert_called()
 
+
 def test_date_range_multi_day_execution():
+
+    mock_s3_client = MagicMock(spec=S3Client)
+    run_date_range_ingestion(
+        start_date=2026 - 11 - 1, end_date=2026 - 11 - 3, s3_client=mock_s3_client
+    )
+
+    mock_s3_client.run_daily_ingestion.assert_called_with(2026 - 11 - 1)
+    mock_s3_client.run_daily_ingestion.assert_called_with(2026 - 11 - 2)
+    mock_s3_client.run_daily_ingestion.assert_called_with(2026 - 11 - 3)
+
+
+def test_pending_buffer_propagates_to_next_day():
     
