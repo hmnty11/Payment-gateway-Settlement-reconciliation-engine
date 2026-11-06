@@ -4,3 +4,5 @@
 minio
 __pycache__
 data_sample
+.pytest_cache
+.ruff_cache
