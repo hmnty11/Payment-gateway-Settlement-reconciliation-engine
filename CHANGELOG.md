@@ -2,6 +2,30 @@
 
 <!-- version list -->
 
+## v1.2.0 (2026-11-06)
+
+### Chores
+
+- Add boto3 stubs as dev dependencies
+  ([`d09e36f`](https://github.com/hmnty11/Payment-gateway-Settlement-reconciliation-engine/commit/d09e36f7247d5c6172739420ebb3111f18f27631))
+
+### Features
+
+- Ensure_bucket_exist function
+  ([`3a74b6a`](https://github.com/hmnty11/Payment-gateway-Settlement-reconciliation-engine/commit/3a74b6a70c301e4e3308496bcacf021196689eb9))
+
+- Upload file to bucket function
+  ([`3f17e36`](https://github.com/hmnty11/Payment-gateway-Settlement-reconciliation-engine/commit/3f17e3615ec9ea061488c5225a03e2c00a478a95))
+
+### Testing
+
+- Fix test for file upload
+  ([`81e3f93`](https://github.com/hmnty11/Payment-gateway-Settlement-reconciliation-engine/commit/81e3f9302e243fd731c2501a232cc5a49470a272))
+
+- Test fcase for upload file to bucket and refactor test for ensure bucket funcntion
+  ([`7ae9baa`](https://github.com/hmnty11/Payment-gateway-Settlement-reconciliation-engine/commit/7ae9baa926be9064fab37ebafc042abe55f78e74))
+
+
 ## v1.1.0 (2026-11-05)
 
 ### Bug Fixes
