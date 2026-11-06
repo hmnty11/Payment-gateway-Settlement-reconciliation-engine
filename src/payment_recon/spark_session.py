@@ -5,6 +5,29 @@ from payment_recon.config import MINIO_ACCESS_KEY, MINIO_ENDPOINT, MINIO_SECRET_
 
 
 def get_spark_session(env_mode: str) -> SparkSession:
+    """
+    Initialize or retrieve a configured SparkSession for the target environment.
+
+    In 'databricks' mode, retrieves the pre-existing cloud SparkSession managed
+    by the cluster runtime. In 'local' mode, configures Delta Lake extensions,
+    DeltaCatalog, Hadoop S3A filesystem connector targeting MinIO, and AWS SDK
+    bundle dependencies via Delta PIP helper.
+
+    Parameters
+    ----------
+    env_mode : str
+        Target runtime mode ('local' or 'databricks').
+
+    Returns
+    -------
+    SparkSession
+        Configured Apache Spark session instance.
+
+    Raises
+    ------
+    ValueError
+        If `env_mode` is neither 'local' nor 'databricks'.
+    """
     builder = SparkSession.builder.appName("PaymentReconciliationEngine")
 
     if env_mode == "databricks":

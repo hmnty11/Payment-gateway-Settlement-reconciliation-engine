@@ -3,24 +3,29 @@ from collections.abc import Mapping
 
 from dotenv import load_dotenv
 
-# Panggil load_dotenv() di sini agar variabel dari file .env dimuat ke os.environ
+# Load variables from .env into os.environ
 load_dotenv()
 
 
 def detect_environment(env_source: Mapping[str, str] | None = None) -> str:
-    """Mendeteksi apakah sistem berjalan di 'local' atau 'databricks'.
+    """
+    Detect whether the execution environment is 'local' or 'databricks'.
 
-    Hierarki Evaluasi:
-    1. Periksa variabel 'ENV_MODE' (prioritas tertinggi).
-    2. Fallback: Periksa apakah 'DATABRICKS_RUNTIME_VERSION' ada di environment.
-    3. Default: Kembalikan 'local' jika tidak ada penanda lain.
+    Evaluation Hierarchy:
+    1. Inspect the 'ENV_MODE' environment variable (highest priority).
+    2. Fallback: Check if 'DATABRICKS_RUNTIME_VERSION' exists in environment.
+    3. Default: Return 'local' when no matching indicators exist.
 
-    Args:
-        env_source: Sumber dictionary environment (default: None, membaca os.environ).
-                    Parameter ini membuat fungsi sangat mudah diuji di Pytest.
+    Parameters
+    ----------
+    env_source : Mapping[str, str] | None, default=None
+        Environment key-value mapping to evaluate. If None, defaults to `os.environ`.
+        Allows deterministic dependency injection during unit testing.
 
-    Returns:
-        str: 'local' atau 'databricks'.
+    Returns
+    -------
+    str
+        Normalized environment name, either 'local' or 'databricks'.
     """
     source = env_source if env_source is not None else os.environ
     raw_mode = source.get("ENV_MODE")
@@ -39,20 +44,31 @@ def detect_environment(env_source: Mapping[str, str] | None = None) -> str:
 def resolve_storage_paths(
     mode: str, bucket_name: str = "payment-recon"
 ) -> dict[str, str]:
-    """Menentukan alamat folder penyimpanan Bronze & Silver sesuai mode.
-
-    Aturan Path:
-    - Mode 'local': format s3a://<bucket_name>/...
-    - Mode 'databricks': format /Volumes/main/payment_recon/...
-
-    Args:
-        mode: Nilai 'local' atau 'databricks'.
-        bucket_name: Nama bucket MinIO untuk mode lokal.
-
-    Returns:
-        dict: Berisi key 'webhooks', 'settlements', 'fx_rates', dan 'silver'.
     """
+    Resolve storage URI locations for Bronze and Silver layers based on environment.
 
+    Storage Scheme Conventions:
+    - 'local': S3A URI format (`s3a://<bucket_name>/...`) targeting MinIO.
+    - 'databricks': Databricks Unity Catalog Volume path (`/Volumes/main/payment_recon/...`).
+
+    Parameters
+    ----------
+    mode : str
+        Execution mode ('local' or 'databricks'). Case-insensitive.
+    bucket_name : str, default="payment-recon"
+        Target MinIO bucket name for local object storage.
+
+    Returns
+    -------
+    dict[str, str]
+        Mapping containing resolved absolute paths for 'webhooks', 'settlements',
+        'fx_rates', and 'silver'.
+
+    Raises
+    ------
+    ValueError
+        If `mode` is neither 'local' nor 'databricks'.
+    """
     normalized_mode = mode.strip().lower()
 
     if normalized_mode not in ("local", "databricks"):
@@ -76,19 +92,19 @@ def resolve_storage_paths(
 
 
 # ===============================================================
-#   modul level constants (agar mudah di import oleh modul lain)
+#   Module-level constants for global import across packages
 # ===============================================================
 
-# Kunci mode aktif saat modul ini di-import
+# Active environment mode detected at import time
 ENV_MODE: str = detect_environment()
 
-# Kredensial MinIO (hanya relevan di mode lokal)
+# MinIO credentials and endpoint configuration (local development)
 MINIO_ENDPOINT: str = os.getenv("MINIO_ENDPOINT", "http://localhost:9000")
 MINIO_ACCESS_KEY: str = os.getenv("MINIO_ROOT_USER", "")
 MINIO_SECRET_KEY: str = os.getenv("MINIO_ROOT_PASSWORD", "")
 STORAGE_BUCKET_NAME: str = os.getenv("STORAGE_BUCKET_NAME", "payment-recon")
 
-# Ekspor dictionary path dan variabel path individual
+# Resolved storage path registry
 STORAGE_PATHS: dict[str, str] = resolve_storage_paths(ENV_MODE, STORAGE_BUCKET_NAME)
 
 RAW_WEBHOOKS_PATH: str = STORAGE_PATHS.get("webhooks", "")
