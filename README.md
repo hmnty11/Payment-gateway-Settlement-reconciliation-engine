@@ -11,7 +11,7 @@
 [![Semantic Release](https://img.shields.io/badge/%20%20%F0%9F%93%A6%F0%9F%9A%80-semantic--release-e10079.svg)](https://github.com/python-semantic-release/python-semantic-release)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-An enterprise-grade, dual-speed **Data Lakehouse & Financial Reconciliation Engine** designed to match high-velocity, micro-batch payment gateway webhooks against daily multi-currency bank settlement mutations. Built with **PySpark**, **Delta Lake**, **dbt**, and **Apache Airflow**, adhering to a **Hybrid Dual-Environment Parity** pattern (Local MinIO TDD $\leftrightarrow$ Databricks Unity Catalog Cloud).
+An enterprise-grade, dual-speed **Data Lakehouse & Financial Reconciliation Engine** designed to match high-velocity, micro-batch payment gateway webhooks against daily multi-currency bank settlement mutations. Built with **PySpark**, **Delta Lake**, **dbt**, and **Apache Airflow**, adhering to a **Hybrid Dual-Environment Parity** pattern (Local MinIO TDD ↔ Databricks Unity Catalog Cloud).
 
 ---
 
@@ -32,9 +32,9 @@ This engine automates end-to-end ingestion, schema enforcement, deduplication, D
 ```mermaid
 flowchart TD
     subgraph DataSources["1. Upstream Data Sources (Two-Speed Data)"]
-        WH["⚡ Payment Gateway Webhooks<br/>(Micro-batch JSON: Midtrans, Stripe)"]
-        BS["🏦 Bank Settlement Statements<br/>(Daily Batch CSV: BCA, Mandiri, Citi)"]
-        FX["💱 Daily Central Bank FX Rates<br/>(Daily Batch CSV: Reference Rates)"]
+        WH[" Payment Gateway Webhooks<br/>(Micro-batch JSON: Midtrans, Stripe)"]
+        BS[" Bank Settlement Statements<br/>(Daily Batch CSV: BCA, Mandiri, Citi)"]
+        FX[" Daily Central Bank FX Rates<br/>(Daily Batch CSV: Reference Rates)"]
     end
 
     subgraph Bronze["2. Bronze Tier (Raw Storage Layer)"]
@@ -86,7 +86,7 @@ flowchart TD
 
 ---
 
-## 3. Hybrid Dual-Environment Parity (Local $\leftrightarrow$ Cloud)
+## 3. Hybrid Dual-Environment Parity (Local ↔ Cloud)
 
 A core engineering principle of this repository is **Environment Parity**: the exact same PySpark extraction jobs and dbt models execute across both environments via a single runtime switch (`ENV_MODE`):
 
@@ -123,7 +123,7 @@ Captures asynchronous micro-batch gateway events. Nested structure enforces stri
 | `timestamp` | Timestamp (ISO8601) | No | Receipt timestamp in UTC. |
 | `event.status` | String | No | Allowed: `pending`, `success`, `failed`, `cancelled`. |
 | `transaction.transaction_id` | String | No | Canonical business entity key (`trx_<alphanumeric>`). |
-| `transaction.amount` | Decimal(18, 2) | No | Gross transaction nominal. **Constraint:** Must be strictly positive ($> 0$). |
+| `transaction.amount` | Decimal(18, 2) | No | Gross transaction nominal. **Constraint:** Must be strictly positive (> 0). |
 | `transaction.currency` | String (ISO 4217) | No | Source currency: `USD`, `SGD`, `EUR`, `IDR`. |
 | `transaction.attempts` | Array[Struct] | Yes | Historical payment attempts before reaching final status. |
 | `payment_gateway_response.status_code` | String | No | HTTP status code response (e.g. `200`, `400`). |
@@ -153,7 +153,7 @@ Represents daily clearing statements received from partner bank accounts:
 Malformed or fraudulent records are diverted to `silver.quarantine_webhooks` with an explicit `rejection_reason`:
 1. **Malformed Structure:** Payload fails JSON schema validation or parsing.
 2. **Missing Business Identity:** Record lacks `transaction.transaction_id` or contains empty strings.
-3. **Invalid Monetary Value:** `transaction.amount` is `NULL` or non-positive ($\le 0$).
+3. **Invalid Monetary Value:** `transaction.amount` is `NULL` or non-positive (≤ 0).
 4. **Missing Temporal Timestamp:** Null or corrupted `timestamp`.
 
 ### Idempotency & Deduplication Strategy
@@ -161,8 +161,10 @@ Malformed or fraudulent records are diverted to `silver.quarantine_webhooks` wit
    ```python
    df_deduped_events = df_raw.dropDuplicates(["event_id"])
    ```
-2. **State Evolution Resolution:** Multiple status events for a single `transaction_id` (e.g. `pending` $\rightarrow$ `success`) are resolved by keeping only the latest authoritative state using distributed window ranking:
-   $$\text{ROW\_NUMBER() OVER (PARTITION BY transaction\_id ORDER BY timestamp DESC)}$$
+2. **State Evolution Resolution:** Multiple status events for a single `transaction_id` (e.g. `pending` → `success`) are resolved by keeping only the latest authoritative state using distributed window ranking:
+   ```sql
+   ROW_NUMBER() OVER (PARTITION BY transaction_id ORDER BY timestamp DESC)
+   ```
 
 ---
 
@@ -171,19 +173,19 @@ Malformed or fraudulent records are diverted to `silver.quarantine_webhooks` wit
 ### Mathematical Formulation
 For each successful transaction, the reconciliation model evaluates the **Expected Net Amount**:
 
-$$\text{Expected Gross IDR} = \text{amount (Original)} \times \text{exchange\_rate (Transaction Date)}$$
+$$\text{Expected Gross IDR} = \text{Original Amount} \times \text{Exchange Rate}$$
 
-$$\text{Expected Net IDR} = \text{Expected Gross IDR} - \text{Contracted Fee IDR}$$
+$$\text{Expected Net IDR} = \text{Expected Gross IDR} - \text{Contracted Fee}$$
 
-$$\text{Variance IDR} = |\text{Expected Net IDR} - \text{net\_settled\_amount (Bank)}|$$
+$$\text{Variance IDR} = |\text{Expected Net IDR} - \text{Net Settled Amount}|$$
 
-$$\text{Variance Percentage} = \frac{\text{Variance IDR}}{\text{Expected Net IDR}} \times 100\%$$
+$$\text{Variance Percentage} = \frac{\text{Variance IDR}}{\text{Expected Net IDR}} \times 100$$
 
 ### Dynamic Reconciliation Tolerance
-* **Domestic Transactions (`IDR` $\rightarrow$ `IDR`):**
-  Tolerance threshold: **$\le 0.05\%$** or absolute nominal discrepancy $\le \text{Rp } 100$ (rounding allowance).
-* **Cross-Border Transactions (`USD` / `SGD` / `EUR` $\rightarrow$ `IDR`):**
-  Tolerance threshold: **$\le 1.0\%$** to accommodate intraday forex rate fluctuation (*FX Slippage*).
+* **Domestic Transactions (`IDR` → `IDR`):**
+  Tolerance threshold: **≤ 0.05%** or absolute nominal discrepancy ≤ Rp 100 (rounding allowance).
+* **Cross-Border Transactions (`USD` / `SGD` / `EUR` → `IDR`):**
+  Tolerance threshold: **≤ 1.0%** to accommodate intraday forex rate fluctuation (*FX Slippage*).
 
 ### Reconciliation Classification Taxonomy
 
@@ -191,8 +193,8 @@ $$\text{Variance Percentage} = \frac{\text{Variance IDR}}{\text{Expected Net IDR
 | :--- | :--- | :--- |
 | **`EXACT_MATCH`** | Present in internal & bank ledgers; `Variance IDR == 0`. | `fct_reconciliation` |
 | **`MATCHED_WITHIN_THRESHOLD`** | Present in both ledgers; `Variance Percentage <= 1.0%`. | `fct_reconciliation` |
-| **`AMOUNT_MISMATCH`** | Present in both ledgers, but variance **exceeds tolerance** ($> 1.0\%$). | `fct_discrepancy_audit` |
-| **`UNSETTLED_INTERNAL`** | Internal transaction `success`, but missing from bank clearing ($\le 3$ days: *Late Arriving*, $> 3$ days: *Overdue*). | `fct_discrepancy_audit` |
+| **`AMOUNT_MISMATCH`** | Present in both ledgers, but variance **exceeds tolerance** (> 1.0%). | `fct_discrepancy_audit` |
+| **`UNSETTLED_INTERNAL`** | Internal transaction `success`, but missing from bank clearing (≤ 3 days: *Late Arriving*, > 3 days: *Overdue*). | `fct_discrepancy_audit` |
 | **`MISSING_IN_INTERNAL`** | Unrecognized money received at bank with unknown internal ID (*Ghost Payment*). | `fct_discrepancy_audit` |
 | **`STATUS_MISMATCH`** | Internal ledger records `failed` or `cancelled`, but bank cleared funds (*Zombie Payment*). | `fct_discrepancy_audit` |
 
@@ -347,7 +349,7 @@ uv run ruff format .
   - [ ] Reconciliation fact mart (`fct_reconciliation`) and discrepancy audit mart (`fct_discrepancy_audit`).
   - [ ] SCD Type 2 status snapshot tracking (`snap_transaction_status`).
 - [ ] **Phase 5: Orchestration, Idempotency & Backfill Proof**
-  - [ ] Apache Airflow DAG orchestrating Generator $\rightarrow$ PySpark Job $\rightarrow$ `dbt build`.
+  - [ ] Apache Airflow DAG orchestrating Generator → PySpark Job → `dbt build`.
   - [ ] Idempotency proof: multi-run backfill verification demonstrating zero ledger duplication.
 
 ---
