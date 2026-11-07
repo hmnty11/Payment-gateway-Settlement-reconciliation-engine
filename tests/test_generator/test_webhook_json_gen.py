@@ -1,5 +1,6 @@
 import json
-from datetime import datetime
+from datetime import date, datetime
+from pathlib import Path
 
 from data_gen.webhook_json_gen import (
     generate_batch_webhook,
@@ -15,7 +16,6 @@ def test_generate_batch_volume():
     assert len(batch) == 20
     assert isinstance(batch, list)
 
-    # checking inside list is dict or not
     for i in batch:
         assert isinstance(i, dict)
 
@@ -37,11 +37,8 @@ def test_webhook_contract_schema_keys():
         "trace",
     ]
 
-    assert set(root_keys) == set(
-        data.keys()
-    )  # testing every key generated is the same with keys in data schema
+    assert set(root_keys) == set(data.keys())
 
-    # Keys Validations
     nested_contracts = {
         "event": {"category", "action", "status"},
         "transaction": {
@@ -62,17 +59,11 @@ def test_webhook_contract_schema_keys():
         "trace": {"trace_id", "service_name"},
     }
 
-    # for loop to test datatype and child keys
     for parent_key, expected_child_keys in nested_contracts.items():
         child_keys = data[parent_key]
-
-        # to check if child keys is dictionary
         assert isinstance(child_keys, dict)
-
-        # to check child key is the same with expected
         assert set(expected_child_keys) == set(child_keys.keys())
 
-    # Array validation, because of it is list
     attempts = data["transaction"]["attempts"]
     assert isinstance(attempts, list)
     assert len(attempts) > 0
@@ -80,18 +71,15 @@ def test_webhook_contract_schema_keys():
     expected_attempt_keys = {"attempt_no", "status", "attempt_time", "reason"}
     for attempt in attempts:
         assert isinstance(attempt, dict)
-
         assert set(expected_attempt_keys) == set(attempt.keys())
 
 
-# testing integrity for generated data so it followed data contract
 def test_webhook_data_integrity():
     webhook_data = generate_single_webhook()
 
     assert webhook_data["event_id"].startswith("evt_")
     assert webhook_data["transaction"]["transaction_id"].startswith("trx_")
     assert webhook_data["transaction"]["reference_id"].startswith("ref_")
-
     assert webhook_data["transaction"]["amount"] > 0
 
     currency = ["IDR", "USD", "SGD", "EUR"]
@@ -99,6 +87,24 @@ def test_webhook_data_integrity():
 
     parsed_time = datetime.fromisoformat(webhook_data["timestamp"])
     assert parsed_time is not None
+
+
+def test_webhook_target_date_injection():
+    test_date = date(2026, 11, 1)
+    single_record = generate_single_webhook(target_date=test_date)
+
+    parsed_time = datetime.fromisoformat(single_record["timestamp"])
+    assert parsed_time.date() == test_date
+
+    attempt_time = datetime.fromisoformat(
+        single_record["transaction"]["attempts"][0]["attempt_time"]
+    )
+    assert attempt_time.date() == test_date
+
+    batch = generate_batch_webhook(count=5, target_date=test_date)
+    for record in batch:
+        record_time = datetime.fromisoformat(record["timestamp"])
+        assert record_time.date() == test_date
 
 
 def test_webhook_anomaly_data():
@@ -120,21 +126,18 @@ def test_webhook_anomaly_data():
 def test_generate_batch_anomaly_rate():
     currency = ["IDR", "USD", "SGD", "EUR"]
 
-    clean_data = generate_batch_webhook(anomaly_rate=0.0)
+    clean_data = generate_batch_webhook(count=10, anomaly_rate=0.0)
     for item in clean_data:
         assert item["event_id"].startswith("evt_")
         assert item["transaction"]["transaction_id"].startswith("trx_")
         assert item["transaction"]["reference_id"].startswith("ref_")
-
         assert item["transaction"]["amount"] > 0
-
         assert item["transaction"]["currency"] in currency
 
         parsed_time = datetime.fromisoformat(item["timestamp"])
         assert parsed_time is not None
 
-    data_with_anomaly = generate_batch_webhook(anomaly_rate=1.0)
-
+    data_with_anomaly = generate_batch_webhook(count=10, anomaly_rate=1.0)
     for item in data_with_anomaly:
         tx = item["transaction"]
 
@@ -148,16 +151,25 @@ def test_generate_batch_anomaly_rate():
         ), f"failed to load anomalies: {tx}"
 
 
-def test_save_batch_to_json_creates_file_and_content_matches(tmp_path):
-    count = 3
-    webhook_data = generate_batch_webhook(count)
+def test_save_batch_to_json_creates_file_and_content_matches(tmp_path: Path):
+    webhook_data = generate_batch_webhook(count=3)
     test_dir = tmp_path / "bronze_webhooks"
 
-    result_path_dir = save_batch_to_json(webhook_data, test_dir)
+    result_path = save_batch_to_json(data=webhook_data, path=test_dir)
 
-    assert result_path_dir.exists()
-    assert result_path_dir.is_file()
+    assert result_path.exists()
+    assert result_path.is_file()
 
-    with open(result_path_dir, encoding="utf-8") as f:
+    with open(result_path, encoding="utf-8") as f:
         file_json = json.load(f)
     assert file_json == webhook_data
+
+
+def test_save_batch_to_json_with_explicit_filepath(tmp_path: Path):
+    webhook_data = generate_batch_webhook(count=2)
+    explicit_file = tmp_path / "custom" / "webhook_custom.json"
+
+    result_path = save_batch_to_json(data=webhook_data, path=explicit_file)
+
+    assert result_path == explicit_file
+    assert result_path.exists()
