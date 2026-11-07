@@ -2,6 +2,27 @@
 
 <!-- version list -->
 
+## v1.3.0 (2026-11-07)
+
+### Chores
+
+- Ignore pytest and ruff cache
+  ([`f34b08c`](https://github.com/hmnty11/Payment-gateway-Settlement-reconciliation-engine/commit/f34b08cb95f2b1d23e606449531d7fa822b5cddf))
+
+### Documentation
+
+- Fix error in math docs
+  ([`f09191f`](https://github.com/hmnty11/Payment-gateway-Settlement-reconciliation-engine/commit/f09191f4212983f2dbd6a4fa1549c563b250116f))
+
+- Update readme.md and docstring for every module
+  ([`523d08f`](https://github.com/hmnty11/Payment-gateway-Settlement-reconciliation-engine/commit/523d08f57d17b42b6d8077ae4e6b735908f2768f))
+
+### Features
+
+- Spark jobs for running generation data and ingestion
+  ([`e8b727a`](https://github.com/hmnty11/Payment-gateway-Settlement-reconciliation-engine/commit/e8b727a810d10506dfdaad7525c5e54fb74c2193))
+
+
 ## v1.2.0 (2026-11-06)
 
 ### Chores
