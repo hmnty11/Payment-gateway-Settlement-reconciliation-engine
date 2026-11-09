@@ -60,15 +60,15 @@ def test_resolve_storage_paths_databricks():
     storage_paths = resolve_storage_paths(mode="databricks")
 
     assert storage_paths["webhooks"].startswith(
-        "/Volumes/main/payment_recon/raw/webhooks"
+        "/Volumes/workspace/payment_recon/raw/webhooks"
     )
     assert storage_paths["settlements"].startswith(
-        "/Volumes/main/payment_recon/raw/settlements"
+        "/Volumes/workspace/payment_recon/raw/settlements"
     )
     assert storage_paths["fx_rates"].startswith(
-        "/Volumes/main/payment_recon/raw/fx_rates"
+        "/Volumes/workspace/payment_recon/raw/fx_rates"
     )
-    assert storage_paths["silver"].startswith("/Volumes/main/payment_recon/silver")
+    assert storage_paths["silver"].startswith("/Volumes/workspace/payment_recon/silver")
 
 
 def test_resolve_storage_paths_custom_name_bucket():

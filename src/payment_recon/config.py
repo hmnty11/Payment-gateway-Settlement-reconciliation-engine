@@ -70,7 +70,7 @@ def resolve_storage_paths(
         base_path = f"s3a://{bucket_name}"
 
     elif normalized_mode == "databricks":
-        base_path = "/Volumes/main/payment_recon"
+        base_path = "/Volumes/workspace/payment_recon"
 
     storage_paths = {
         "webhooks": f"{base_path}/raw/webhooks",
