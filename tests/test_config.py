@@ -47,11 +47,11 @@ def test_resolve_storage_paths_local():
 
     storage_paths = resolve_storage_paths(mode="local")
 
-    assert storage_paths["webhooks"].startswith("s3a://payment-recon/raw/webhooks")
+    assert storage_paths["webhooks"].startswith("s3a://payment-recon/bronze/webhooks")
     assert storage_paths["settlements"].startswith(
-        "s3a://payment-recon/raw/settlements"
+        "s3a://payment-recon/bronze/settlements"
     )
-    assert storage_paths["fx_rates"].startswith("s3a://payment-recon/raw/fx_rates")
+    assert storage_paths["fx_rates"].startswith("s3a://payment-recon/bronze/fx_rates")
     assert storage_paths["silver"].startswith("s3a://payment-recon/silver")
 
 
@@ -60,13 +60,13 @@ def test_resolve_storage_paths_databricks():
     storage_paths = resolve_storage_paths(mode="databricks")
 
     assert storage_paths["webhooks"].startswith(
-        "/Volumes/workspace/payment_recon/raw/webhooks"
+        "/Volumes/workspace/payment_recon/bronze/webhooks"
     )
     assert storage_paths["settlements"].startswith(
-        "/Volumes/workspace/payment_recon/raw/settlements"
+        "/Volumes/workspace/payment_recon/bronze/settlements"
     )
     assert storage_paths["fx_rates"].startswith(
-        "/Volumes/workspace/payment_recon/raw/fx_rates"
+        "/Volumes/workspace/payment_recon/bronze/fx_rates"
     )
     assert storage_paths["silver"].startswith("/Volumes/workspace/payment_recon/silver")
 
@@ -75,11 +75,11 @@ def test_resolve_storage_paths_custom_name_bucket():
 
     storage_paths = resolve_storage_paths(mode="local", bucket_name="custom-bucket")
 
-    assert storage_paths["webhooks"].startswith("s3a://custom-bucket/raw/webhooks")
+    assert storage_paths["webhooks"].startswith("s3a://custom-bucket/bronze/webhooks")
     assert storage_paths["settlements"].startswith(
-        "s3a://custom-bucket/raw/settlements"
+        "s3a://custom-bucket/bronze/settlements"
     )
-    assert storage_paths["fx_rates"].startswith("s3a://custom-bucket/raw/fx_rates")
+    assert storage_paths["fx_rates"].startswith("s3a://custom-bucket/bronze/fx_rates")
     assert storage_paths["silver"].startswith("s3a://custom-bucket/silver")
 
 

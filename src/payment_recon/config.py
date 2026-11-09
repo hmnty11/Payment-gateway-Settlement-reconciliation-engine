@@ -73,9 +73,9 @@ def resolve_storage_paths(
         base_path = "/Volumes/workspace/payment_recon"
 
     storage_paths = {
-        "webhooks": f"{base_path}/raw/webhooks",
-        "settlements": f"{base_path}/raw/settlements",
-        "fx_rates": f"{base_path}/raw/fx_rates",
+        "webhooks": f"{base_path}/bronze/webhooks",
+        "settlements": f"{base_path}/bronze/settlements",
+        "fx_rates": f"{base_path}/bronze/fx_rates",
         "silver": f"{base_path}/silver",
     }
 
@@ -91,7 +91,7 @@ STORAGE_BUCKET_NAME: str = os.getenv("STORAGE_BUCKET_NAME", "payment-recon")
 
 STORAGE_PATHS: dict[str, str] = resolve_storage_paths(ENV_MODE, STORAGE_BUCKET_NAME)
 
-RAW_WEBHOOKS_PATH: str = STORAGE_PATHS.get("webhooks", "")
-RAW_SETTLEMENTS_PATH: str = STORAGE_PATHS.get("settlements", "")
-RAW_FX_RATES_PATH: str = STORAGE_PATHS.get("fx_rates", "")
+BRONZE_WEBHOOKS_PATH: str = STORAGE_PATHS.get("webhooks", "")
+BRONZE_SETTLEMENTS_PATH: str = STORAGE_PATHS.get("settlements", "")
+BRONZE_FX_RATES_PATH: str = STORAGE_PATHS.get("fx_rates", "")
 SILVER_PATH: str = STORAGE_PATHS.get("silver", "")

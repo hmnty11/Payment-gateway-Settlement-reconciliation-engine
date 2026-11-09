@@ -3,6 +3,7 @@ from datetime import date, datetime
 from pathlib import Path
 
 from data_gen.webhook_json_gen import (
+    currency,
     generate_batch_webhook,
     generate_single_webhook,
     save_batch_to_json,
@@ -82,7 +83,6 @@ def test_webhook_data_integrity():
     assert webhook_data["transaction"]["reference_id"].startswith("ref_")
     assert webhook_data["transaction"]["amount"] > 0
 
-    currency = ["IDR", "USD", "SGD", "EUR"]
     assert webhook_data["transaction"]["currency"] in currency
 
     parsed_time = datetime.fromisoformat(webhook_data["timestamp"])
@@ -108,7 +108,6 @@ def test_webhook_target_date_injection():
 
 
 def test_webhook_anomaly_data():
-    currency = ["IDR", "USD", "SGD", "EUR"]
     for _ in range(10):
         webhook_data = generate_single_webhook(is_anomaly=True)
         tx = webhook_data["transaction"]
@@ -124,8 +123,6 @@ def test_webhook_anomaly_data():
 
 
 def test_generate_batch_anomaly_rate():
-    currency = ["IDR", "USD", "SGD", "EUR"]
-
     clean_data = generate_batch_webhook(count=10, anomaly_rate=0.0)
     for item in clean_data:
         assert item["event_id"].startswith("evt_")

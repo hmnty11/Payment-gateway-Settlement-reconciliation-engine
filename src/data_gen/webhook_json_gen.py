@@ -142,11 +142,6 @@ def generate_batch_webhook(
     list[dict]
         List of generated webhook event dictionaries.
     """
-    # Handle positional target_date gracefully if passed as first parameter
-    if isinstance(count, date):
-        target_date = count
-        count = 10
-
     # Generate batch and randomly sample anomalies based on anomaly_rate
     batch_webhook = [
         generate_single_webhook(
@@ -160,7 +155,7 @@ def generate_batch_webhook(
 
 def save_batch_to_json(
     data: list[dict],
-    path: Path | str = "./data_sample/bronze_webhook",
+    path: Path | str = "./data_sample/bronze_webhooks",
     file_name: str | None = None,
 ) -> Path:
     """
@@ -174,7 +169,7 @@ def save_batch_to_json(
     ----------
     data : list[dict]
         List of webhook event dictionaries to serialize.
-    path : Path | str, default="./data_sample/bronze_webhook"
+    path : Path | str, default="./data_sample/bronze_webhooks"
         Destination directory path or direct target '.json' file path.
     file_name : str | None, default=None
         Explicit filename to use when `path` is a directory. If None, derives a

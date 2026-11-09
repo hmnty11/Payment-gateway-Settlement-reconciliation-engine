@@ -13,16 +13,15 @@ from pathlib import Path
 
 from faker import Faker
 
+from data_gen.webhook_json_gen import currency as SUPPORTED_CURRENCIES
+
 # Initialize Faker instance for realistic synthetic data generation
 fake = Faker()
 
 # FX rates relative to base settlement currency (IDR)
-fx_rates = {
-    "IDR": 1.0,
-    "USD": 18147.0,
-    "SGD": 14174.0,
-    "EUR": 20293.0,
-}
+fx_rates = dict(
+    zip(SUPPORTED_CURRENCIES, [1.0, 18147.0, 14174.0, 20293.0], strict=True)
+)
 
 # Simulated partner bank and disbursement institutions
 bank_names = ["BCA", "MANDIRI", "AMEX", "BRI", "JAGO", "OVO"]
@@ -98,6 +97,7 @@ def single_settlement(
             gross_amount = round(
                 gross_amount + gross_amount * random.uniform(0.05, 0.15), 2
             )
+            net_settled_amount = round(gross_amount - fee_amount, 2)
         elif anomaly == "ghost_payment":
             # Ghost payment: assign orphan transaction ID not present in webhook events
             transaction_id = "trx_" + fake.hexify(text="^^^^^^^^^^^^")
@@ -178,7 +178,7 @@ def generate_batch_settlement(
 
 def save_batch_csv(
     batch_data: list[dict] | None = None,
-    path: Path | str = "./data_sample/bronze_settlement",
+    path: Path | str = "./data_sample/bronze_settlements",
     file_name: str | None = None,
 ) -> Path:
     """
@@ -193,7 +193,7 @@ def save_batch_csv(
     batch_data : list[dict] | None, default=None
         List of settlement dictionaries to write as CSV rows. If empty or None,
         only the destination path is resolved and returned without writing.
-    path : Path | str, default="./data_sample/bronze_settlement"
+    path : Path | str, default="./data_sample/bronze_settlements"
         Destination directory path or direct target '.csv' file path.
     file_name : str | None, default=None
         Explicit filename to use when `path` is a directory. If None, derives a

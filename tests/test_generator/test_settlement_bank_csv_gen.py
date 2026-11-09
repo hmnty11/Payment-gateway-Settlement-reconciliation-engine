@@ -3,6 +3,7 @@ from datetime import date, datetime
 from pathlib import Path
 
 from data_gen.settlement_bank_csv_gen import (
+    fx_rates,
     generate_batch_settlement,
     save_batch_csv,
     single_settlement,
@@ -70,7 +71,13 @@ def test_settlement_anomaly():
     target_webhook = webhook_data[0]
     settlement = single_settlement(target_webhook, is_anomaly=True)
 
-    is_amount_mismatch = settlement["net_settled_amount"] != round(
+    expected_gross = round(
+        target_webhook["transaction"]["amount"]
+        * fx_rates[target_webhook["transaction"]["currency"]],
+        2,
+    )
+    is_amount_mismatch = settlement["gross_amount"] != expected_gross
+    assert settlement["net_settled_amount"] == round(
         settlement["gross_amount"] - settlement["fee_amount"], 2
     )
     is_ghost_payment = (
@@ -137,7 +144,7 @@ def test_save_batch_csv(tmp_path: Path):
 
 def test_save_batch_csv_directory_mode(tmp_path: Path):
     batch_data = generate_batch_settlement(count=3, anomaly_rate=0.0)
-    target_dir = tmp_path / "bronze_settlement"
+    target_dir = tmp_path / "bronze_settlements"
 
     result_path = save_batch_csv(batch_data=batch_data, path=target_dir)
 

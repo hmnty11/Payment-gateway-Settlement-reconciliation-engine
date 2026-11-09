@@ -2349,6 +2349,7 @@ source = { editable = "." }
 dependencies = [
     { name = "apache-airflow" },
     { name = "boto3" },
+    { name = "databricks-sdk" },
     { name = "dbt-core" },
     { name = "dbt-databricks" },
     { name = "pandas" },
@@ -2371,6 +2372,7 @@ dev = [
 requires-dist = [
     { name = "apache-airflow", specifier = ">=3.3.2" },
     { name = "boto3", specifier = ">=1.43.118" },
+    { name = "databricks-sdk", specifier = ">=0.117.0" },
     { name = "dbt-core", specifier = ">=1.12.5" },
     { name = "dbt-databricks", specifier = ">=1.12.7" },
     { name = "pandas", specifier = "<=3.0.0" },

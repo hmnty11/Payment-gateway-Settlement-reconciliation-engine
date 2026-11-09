@@ -92,8 +92,10 @@ def test_run_daily_ingestion_creates_hive_partitions_and_uploads(tmp_path: Path)
         webhook_key = mock_upload.call_args_list[0].args[2]
         settlement_key = mock_upload.call_args_list[1].args[2]
 
-        assert "year=2026/month=11/day=01" in webhook_key
-        assert "year=2026/month=11/day=01" in settlement_key
+        assert webhook_key.startswith("bronze/webhooks/year=2026/month=11/day=01/")
+        assert settlement_key.startswith(
+            "bronze/settlements/year=2026/month=11/day=01/"
+        )
 
 
 def test_date_range_invalid_raises_error():

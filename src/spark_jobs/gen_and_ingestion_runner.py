@@ -19,6 +19,11 @@ from data_gen.webhook_json_gen import (
     save_batch_to_json,
 )
 from ingestion.storage_uploader import get_s3_client, upload_file_to_bucket
+from payment_recon.config import (
+    BRONZE_SETTLEMENTS_PATH,
+    BRONZE_WEBHOOKS_PATH,
+    STORAGE_BUCKET_NAME,
+)
 
 
 def split_webhooks_for_settlement(
@@ -57,7 +62,7 @@ def run_daily_ingestion(
     target_date: date,
     num_records: int = 100,
     output_dir: Path | str = "./data_sample",
-    bucket_name: str = "payment-recon",
+    bucket_name: str = STORAGE_BUCKET_NAME,
     pending_buffer: list[dict] | None = None,
     s3_client: S3Client | None = None,
 ) -> dict:
@@ -102,10 +107,16 @@ def run_daily_ingestion(
     return {
         "target_date": target_date,
         "webhook_s3_uri": upload_file_to_bucket(
-            wh_file, bucket_name, f"bronze/webhooks/{partition}/{wh_file.name}", s3
+            wh_file,
+            bucket_name,
+            f"{BRONZE_WEBHOOKS_PATH.removeprefix(f's3a://{bucket_name}/')}/{partition}/{wh_file.name}",
+            s3,
         ),
         "settlement_s3_uri": upload_file_to_bucket(
-            st_file, bucket_name, f"bronze/settlements/{partition}/{st_file.name}", s3
+            st_file,
+            bucket_name,
+            f"{BRONZE_SETTLEMENTS_PATH.removeprefix(f's3a://{bucket_name}/')}/{partition}/{st_file.name}",
+            s3,
         ),
         "pending_buffer": new_pending,
     }
@@ -116,7 +127,7 @@ def run_date_range_ingestion(
     end_date: date | None = None,
     num_records_per_day: int = 100,
     output_dir: Path | str = "./data_sample",
-    bucket_name: str = "payment-recon",
+    bucket_name: str = STORAGE_BUCKET_NAME,
     s3_client: S3Client | None = None,
 ) -> list[dict]:
     """
