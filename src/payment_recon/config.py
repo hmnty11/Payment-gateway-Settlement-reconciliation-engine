@@ -82,7 +82,6 @@ def resolve_storage_paths(
     return storage_paths
 
 
-
 ENV_MODE: str = detect_environment()
 
 MINIO_ENDPOINT: str = os.getenv("MINIO_ENDPOINT", "http://localhost:9000")

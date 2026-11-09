@@ -34,8 +34,9 @@ def get_spark_session(env_mode: str) -> SparkSession:
 
     elif env_mode == "local":
         builder = (
-            builder
-            .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
+            builder.config(
+                "spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension"
+            )
             .config(
                 "spark.sql.catalog.spark_catalog",
                 "org.apache.spark.sql.delta.catalog.DeltaCatalog",
