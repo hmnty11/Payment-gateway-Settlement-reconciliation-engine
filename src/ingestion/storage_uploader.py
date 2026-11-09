@@ -123,11 +123,29 @@ def upload_file_to_bucket(
     return f"s3a://{bucket_name}/{object_key}"
 
 
-# databricks
 def get_databricks_client(
     host: str | None = None, token: str | None = None
 ) -> WorkspaceClient:
+    """
+    Initialize a Databricks WorkspaceClient using explicit or configured credentials.
 
+    Parameters
+    ----------
+    host : str | None, default=None
+        Databricks workspace URL. Falls back to `DATABRICKS_HOST` if None.
+    token : str | None, default=None
+        Databricks personal access token. Falls back to `DATABRICKS_TOKEN` if None.
+
+    Returns
+    -------
+    WorkspaceClient
+        Authenticated Databricks WorkspaceClient instance.
+
+    Raises
+    ------
+    ValueError
+        If either `host` or `token` is empty after fallback resolution.
+    """
     if host is None:
         host = DATABRICKS_HOST
 
@@ -150,6 +168,33 @@ def upload_file_to_volume(
     volume_base_path: str,
     dbx_client: WorkspaceClient | None = None,
 ) -> str:
+    """
+    Upload a local file to a Databricks Unity Catalog Volume.
+
+    Strips leading slashes and the 'bronze/' prefix from `object_key` before
+    appending it to `volume_base_path`, then uploads with overwrite enabled.
+
+    Parameters
+    ----------
+    file_path : Path | str
+        Path to the local source file.
+    object_key : str
+        Relative destination path inside the volume.
+    volume_base_path : str
+        Base Unity Catalog Volume path (e.g. '/Volumes/workspace/payment_recon/bronze').
+    dbx_client : WorkspaceClient | None, default=None
+        Databricks WorkspaceClient. Initialized via `get_databricks_client()` if None.
+
+    Returns
+    -------
+    str
+        Resolved destination path inside the Unity Catalog Volume.
+
+    Raises
+    ------
+    FileNotFoundError
+        If `file_path` does not exist or is not a regular file.
+    """
     file_path = Path(file_path)
 
     if not file_path.is_file():
@@ -161,7 +206,7 @@ def upload_file_to_volume(
     volume_base_path = volume_base_path.rstrip("/")
     object_key = object_key.lstrip("/").removeprefix("bronze/")
 
-    target_volume_path = f"{volume_base_path}/{object_key}"  # merge base path and object key to produce target volume path
+    target_volume_path = f"{volume_base_path}/{object_key}"
 
     with open(file_path, "rb") as f:
         dbx_client.files.upload(
