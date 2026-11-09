@@ -1,14 +1,17 @@
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 
 import pytest
 from botocore.exceptions import ClientError
+from databricks.sdk import WorkspaceClient
 from mypy_boto3_s3 import S3Client
 
 from ingestion.storage_uploader import (
     ensure_bucket_exists,
+    get_databricks_client,
     get_s3_client,
     upload_file_to_bucket,
+    upload_file_to_volume,
 )
 from payment_recon.config import MINIO_ACCESS_KEY, MINIO_ENDPOINT, MINIO_SECRET_KEY
 
@@ -151,3 +154,64 @@ def test_upload_file_initializes_client_if_none(tmp_path: Path):
         upload_file_to_bucket(file_path=file, bucket_name="payment-recon")
 
         mock_get_s3_client.assert_called_once()
+
+
+def test_get_databricks_client_missing_credentials_raises_error(monkeypatch):
+    monkeypatch.delenv("DATABRICKS_HOST", False)
+    monkeypatch.delenv("DATABRICKS_TOKEN", False)
+    with pytest.raises(ValueError):
+        get_databricks_client(host="", token=None)
+
+
+def test_upload_file_to_volume_missing_file_raises_error(tmp_path: Path):
+    path = tmp_path / "webhook.json"
+
+    mock_dbx = MagicMock(spec=WorkspaceClient)
+
+    with pytest.raises(FileNotFoundError):
+        upload_file_to_volume(
+            file_path=path,
+            object_key="data_sample/bronze/webhook.json",
+            volume_base_path="/Volumes/workspace/payment_recon/bronze",
+            dbx_client=mock_dbx,
+        )
+
+    mock_dbx.files.upload.assert_not_called()
+
+
+def test_upload_file_to_volume_success_and_path_normalization(tmp_path: Path):
+    path = tmp_path / "webhook.json"
+    path.write_text('{"event": "test"}')
+
+    mock_dbx = MagicMock(spec=WorkspaceClient)
+
+    expected_target_path = (
+        "/Volumes/workspace/payment_recon/bronze/webhooks/year=2026/webhook.json"
+    )
+
+    url = upload_file_to_volume(
+        file_path=path,
+        object_key="/bronze/webhooks/year=2026/webhook.json",
+        volume_base_path="/Volumes/workspace/payment_recon/bronze",
+        dbx_client=mock_dbx,
+    )
+
+    mock_dbx.files.upload.assert_called_once_with(
+        file_path=expected_target_path, contents=ANY, overwrite=True
+    )
+    assert url == expected_target_path
+
+
+def test_upload_file_to_volume_propagates_sdk_error(tmp_path: Path):
+    path = tmp_path / "webhook.json"
+    path.write_text('{"event": "test"}')
+    mock_dbx = MagicMock(spec=WorkspaceClient)
+    mock_dbx.files.upload.side_effect = RuntimeError("Databricks API 403 Forbidden")
+
+    with pytest.raises(RuntimeError, match="Databricks API 403 Forbidden"):
+        upload_file_to_volume(
+            file_path=path,
+            object_key="/bronze/webhooks/year=2026/webhook.json",
+            volume_base_path="/Volumes/workspace/payment_recon/bronze",
+            dbx_client=mock_dbx,
+        )

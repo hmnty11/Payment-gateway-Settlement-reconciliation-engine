@@ -5,11 +5,18 @@ from typing import TYPE_CHECKING
 
 import boto3
 from botocore.exceptions import ClientError
+from databricks.sdk import WorkspaceClient
 
 if TYPE_CHECKING:
     from mypy_boto3_s3 import S3Client
 
-from payment_recon.config import MINIO_ACCESS_KEY, MINIO_ENDPOINT, MINIO_SECRET_KEY
+from payment_recon.config import (
+    DATABRICKS_HOST,
+    DATABRICKS_TOKEN,
+    MINIO_ACCESS_KEY,
+    MINIO_ENDPOINT,
+    MINIO_SECRET_KEY,
+)
 
 
 def get_s3_client() -> S3Client:
@@ -114,3 +121,51 @@ def upload_file_to_bucket(
     s3_client.upload_file(str(file_path), bucket_name, object_key)
 
     return f"s3a://{bucket_name}/{object_key}"
+
+
+# databricks
+def get_databricks_client(
+    host: str | None = None, token: str | None = None
+) -> WorkspaceClient:
+
+    if host is None:
+        host = DATABRICKS_HOST
+
+    if token is None:
+        token = DATABRICKS_TOKEN
+
+    if not host or not token:
+        raise ValueError("please input host or token for databricks in .env file")
+
+    else:
+        host = host.rstrip("/")
+
+    w = WorkspaceClient(host=host, token=token)
+    return w
+
+
+def upload_file_to_volume(
+    file_path: Path | str,
+    object_key: str,
+    volume_base_path: str,
+    dbx_client: WorkspaceClient | None = None,
+) -> str:
+    file_path = Path(file_path)
+
+    if not file_path.is_file():
+        raise FileNotFoundError(f"File not found: {file_path}")
+
+    if dbx_client is None:
+        dbx_client = get_databricks_client(host=DATABRICKS_HOST, token=DATABRICKS_TOKEN)
+
+    volume_base_path = volume_base_path.rstrip("/")
+    object_key = object_key.lstrip("/").removeprefix("bronze/")
+
+    target_volume_path = f"{volume_base_path}/{object_key}"  # merge base path and object key to produce target volume path
+
+    with open(file_path, "rb") as f:
+        dbx_client.files.upload(
+            file_path=target_volume_path, contents=f, overwrite=True
+        )
+
+    return target_volume_path

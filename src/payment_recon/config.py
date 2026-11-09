@@ -83,6 +83,8 @@ def resolve_storage_paths(
 
 
 ENV_MODE: str = detect_environment()
+DATABRICKS_HOST: str = os.getenv("DATABRICKS_HOST", "")
+DATABRICKS_TOKEN: str = os.getenv("DATABRICKS_TOKEN", "")
 
 MINIO_ENDPOINT: str = os.getenv("MINIO_ENDPOINT", "http://localhost:9000")
 MINIO_ACCESS_KEY: str = os.getenv("MINIO_ROOT_USER", "")
