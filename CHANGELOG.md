@@ -2,6 +2,22 @@
 
 <!-- version list -->
 
+## v1.3.2 (2026-11-09)
+
+### Bug Fixes
+
+- Align bronze paths, directory names, currency constants, and anomaly calculation
+  ([`99df3c0`](https://github.com/hmnty11/Payment-gateway-Settlement-reconciliation-engine/commit/99df3c0b8722292fe9bac36e2fb6a2419ef68c24))
+
+- Base path for databricks
+  ([`f610c83`](https://github.com/hmnty11/Payment-gateway-Settlement-reconciliation-engine/commit/f610c833b2892776ac0c2823122dcb2e5889f088))
+
+### Testing
+
+- Manual testing for generation and ingestion jobs
+  ([`e6c3ee3`](https://github.com/hmnty11/Payment-gateway-Settlement-reconciliation-engine/commit/e6c3ee3560d499ffec797a57d6fed391a1450a64))
+
+
 ## v1.3.1 (2026-11-09)
 
 ### Bug Fixes
