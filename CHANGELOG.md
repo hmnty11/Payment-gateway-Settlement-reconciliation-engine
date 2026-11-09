@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v1.3.1 (2026-11-09)
+
+### Bug Fixes
+
+- Formatting
+  ([`0efb81a`](https://github.com/hmnty11/Payment-gateway-Settlement-reconciliation-engine/commit/0efb81abc68a36f888326079c487c13d76d58c78))
+
+### Documentation
+
+- Updating docs with numpy docstring
+  ([`148518b`](https://github.com/hmnty11/Payment-gateway-Settlement-reconciliation-engine/commit/148518b3015322ba7dc514277ca2b5b7bc798d31))
+
+
 ## v1.3.0 (2026-11-07)
 
 ### Chores
