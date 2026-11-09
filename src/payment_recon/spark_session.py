@@ -6,12 +6,11 @@ from payment_recon.config import MINIO_ACCESS_KEY, MINIO_ENDPOINT, MINIO_SECRET_
 
 def get_spark_session(env_mode: str) -> SparkSession:
     """
-    Initialize or retrieve a configured SparkSession for the target environment.
+    Initialize or retrieve a SparkSession configured for the target environment.
 
-    In 'databricks' mode, retrieves the pre-existing cloud SparkSession managed
-    by the cluster runtime. In 'local' mode, configures Delta Lake extensions,
-    DeltaCatalog, Hadoop S3A filesystem connector targeting MinIO, and AWS SDK
-    bundle dependencies via Delta PIP helper.
+    In 'local' mode, configures Delta Lake extensions, DeltaCatalog, Hadoop S3A
+    connectors targeting MinIO, and AWS SDK dependencies. In 'databricks' mode,
+    retrieves the active cluster session.
 
     Parameters
     ----------
@@ -21,12 +20,12 @@ def get_spark_session(env_mode: str) -> SparkSession:
     Returns
     -------
     SparkSession
-        Configured Apache Spark session instance.
+        Configured Spark session instance.
 
     Raises
     ------
     ValueError
-        If `env_mode` is neither 'local' nor 'databricks'.
+        If `env_mode` is not 'local' or 'databricks'.
     """
     builder = SparkSession.builder.appName("PaymentReconciliationEngine")
 
@@ -36,23 +35,19 @@ def get_spark_session(env_mode: str) -> SparkSession:
     elif env_mode == "local":
         builder = (
             builder
-            # DELTA LAKE CONFIGURATION
             .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
             .config(
                 "spark.sql.catalog.spark_catalog",
                 "org.apache.spark.sql.delta.catalog.DeltaCatalog",
             )
-            # MINIO CONFIGURATION S3A
             .config("spark.hadoop.fs.s3a.endpoint", MINIO_ENDPOINT)
             .config("spark.hadoop.fs.s3a.access.key", MINIO_ACCESS_KEY)
             .config("spark.hadoop.fs.s3a.secret.key", MINIO_SECRET_KEY)
-            # ACTIVATE 2 RULES SO IT CAN ACCESS MINIO
-            .config(
-                "spark.hadoop.fs.s3a.path.style.access", "true"
-            )  # url configuration
+            # MinIO requires path-style access.
+            .config("spark.hadoop.fs.s3a.path.style.access", "true")
             .config(
                 "spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem"
-            )  # spark can read s3a files (minio)
+            )
         )
 
         builder = configure_spark_with_delta_pip(
@@ -62,7 +57,6 @@ def get_spark_session(env_mode: str) -> SparkSession:
                 "software.amazon.awssdk:bundle:2.57.4",
             ],
         )
-        # ACTIVATE SPARK SESSION
         return builder.getOrCreate()
     else:
         raise ValueError(

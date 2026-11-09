@@ -1,3 +1,5 @@
+"""Pipeline runner to generate synthetic Bronze data and upload to object storage."""
+
 from __future__ import annotations
 
 import random
@@ -23,7 +25,21 @@ def split_webhooks_for_settlement(
     webhooks: list[dict],
     late_rate: float = 0.05,
 ) -> tuple[list[dict], list[dict]]:
-    """Split valid successful webhooks into same-day settlements and next-day pending buffer."""
+    """
+    Split valid successful webhooks into same-day settlements and next-day pending buffer.
+
+    Parameters
+    ----------
+    webhooks : list[dict]
+        Raw webhook event payloads to filter and partition.
+    late_rate : float, default=0.05
+        Fraction of successful webhooks delayed to simulate T+1 settlement lag.
+
+    Returns
+    -------
+    tuple[list[dict], list[dict]]
+        Pair of `(settle_today, pending)` webhook lists.
+    """
     settle_today = []
     pending = []
     for wh in webhooks:
@@ -45,7 +61,30 @@ def run_daily_ingestion(
     pending_buffer: list[dict] | None = None,
     s3_client: S3Client | None = None,
 ) -> dict:
-    """Generate daily webhooks and settlements, save locally, and upload to S3/MinIO."""
+    """
+    Generate daily webhooks and settlements, save locally, and upload to S3/MinIO.
+
+    Parameters
+    ----------
+    target_date : date
+        Calendar date for the batch ingestion and storage partition.
+    num_records : int, default=100
+        Number of webhook records to generate.
+    output_dir : Path | str, default="./data_sample"
+        Local directory path for temporary file persistence.
+    bucket_name : str, default="payment-recon"
+        Destination S3 bucket name.
+    pending_buffer : list[dict] | None, default=None
+        Pending webhooks held over from previous dates to settle on `target_date`.
+    s3_client : S3Client | None, default=None
+        Boto3 S3 client. Initialized via `get_s3_client()` if None.
+
+    Returns
+    -------
+    dict
+        Dictionary containing `target_date`, S3 URIs for webhooks and settlements,
+        and the updated `pending_buffer`.
+    """
     s3 = s3_client or get_s3_client()
     out = Path(output_dir)
     partition = f"year={target_date:%Y}/month={target_date:%m}/day={target_date:%d}"
@@ -80,7 +119,34 @@ def run_date_range_ingestion(
     bucket_name: str = "payment-recon",
     s3_client: S3Client | None = None,
 ) -> list[dict]:
-    """Run daily ingestion across a date range, carrying pending webhooks forward each day."""
+    """
+    Run daily ingestion across a date range, carrying pending webhooks forward each day.
+
+    Parameters
+    ----------
+    start_date : date
+        Starting date of the ingestion window.
+    end_date : date | None, default=None
+        Ending date of the ingestion window. Defaults to `start_date` if None.
+    num_records_per_day : int, default=100
+        Number of webhook records generated per day.
+    output_dir : Path | str, default="./data_sample"
+        Local directory path for temporary file persistence.
+    bucket_name : str, default="payment-recon"
+        Destination S3 bucket name.
+    s3_client : S3Client | None, default=None
+        Boto3 S3 client. Initialized via `get_s3_client()` if None.
+
+    Returns
+    -------
+    list[dict]
+        List of daily ingestion outcome dictionaries in chronological order.
+
+    Raises
+    ------
+    ValueError
+        If `start_date` is greater than `end_date`.
+    """
     end = end_date or start_date
     if start_date > end:
         raise ValueError("start_date cannot be greater than end_date")
