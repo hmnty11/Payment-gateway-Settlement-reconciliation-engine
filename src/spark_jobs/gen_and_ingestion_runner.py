@@ -169,3 +169,8 @@ def run_date_range_ingestion(
         results.append(res)
 
     return results
+
+
+# manual testing
+if __name__ == "__main__":
+    run_date_range_ingestion(start_date=date(2025, 1, 1), end_date=date(2026, 1, 1))
