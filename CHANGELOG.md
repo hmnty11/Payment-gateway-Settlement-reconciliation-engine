@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.4.0 (2026-11-09)
+
+### Features
+
+- Storage upload to databricks
+  ([`9c613cf`](https://github.com/hmnty11/Payment-gateway-Settlement-reconciliation-engine/commit/9c613cf19dc953d65cf68c9fd0050446e457853d))
+
+
 ## v1.3.2 (2026-11-09)
 
 ### Bug Fixes
