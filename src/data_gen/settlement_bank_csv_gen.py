@@ -15,15 +15,12 @@ from faker import Faker
 
 from data_gen.webhook_json_gen import currency as SUPPORTED_CURRENCIES
 
-# Initialize Faker instance for realistic synthetic data generation
 fake = Faker()
 
-# FX rates relative to base settlement currency (IDR)
 fx_rates = dict(
     zip(SUPPORTED_CURRENCIES, [1.0, 18147.0, 14174.0, 20293.0], strict=True)
 )
 
-# Simulated partner bank and disbursement institutions
 bank_names = ["BCA", "MANDIRI", "AMEX", "BRI", "JAGO", "OVO"]
 
 
@@ -59,7 +56,6 @@ def single_settlement(
         Dictionary representing a single bank settlement row conforming to the
         Bronze Settlement Data Contract.
     """
-    # Extract transaction attributes from webhook payload or generate synthetic values
     if webhook_data is not None:
         tx = webhook_data["transaction"]
         transaction_id = tx["transaction_id"]
@@ -72,40 +68,32 @@ def single_settlement(
         currency = random.choice(list(fx_rates.keys()))
         tx_datetime = fake.date_time(UTC)
 
-    # Apply foreign exchange conversion and calculate bank processing fees
     fx_rate = fx_rates.get(currency, 1.0)
     gross_amount = round(raw_amount * fx_rate, 2)
     fee_amount = round(gross_amount * random.uniform(0.01, 0.015), 2)
     net_settled_amount = round(gross_amount - fee_amount, 2)
 
-    # Determine settlement date: explicit date override or banking settlement cycle (T+1 to T+2)
     if settlement_date is not None:
         settled_dt = settlement_date
     else:
         settled_dt = (tx_datetime + timedelta(days=random.randint(1, 2))).date()
 
-    # Inject synthetic reconciliation anomalies for exception testing
     if is_anomaly:
-        # Exclude late settlement anomaly when an explicit settlement date is requested
         anomaly_choices = ["amount_mismatch", "ghost_payment"]
         if settlement_date is None:
             anomaly_choices.append("late_settlement")
         anomaly = random.choice(anomaly_choices)
 
         if anomaly == "amount_mismatch":
-            # Amount mismatch: introduce 5% to 15% discrepancy in gross amount
             gross_amount = round(
                 gross_amount + gross_amount * random.uniform(0.05, 0.15), 2
             )
             net_settled_amount = round(gross_amount - fee_amount, 2)
         elif anomaly == "ghost_payment":
-            # Ghost payment: assign orphan transaction ID not present in webhook events
             transaction_id = "trx_" + fake.hexify(text="^^^^^^^^^^^^")
         elif anomaly == "late_settlement":
-            # Late settlement: delay settlement beyond SLA threshold (4 to 14 days)
             settled_dt = (tx_datetime + timedelta(days=random.randint(4, 14))).date()
 
-    # Construct settlement record adhering to Bronze data contract
     settlement_data = {
         "settlement_id": "stl_" + fake.hexify(text="^^^^^^^^^^^^"),
         "transaction_id": transaction_id,
@@ -155,7 +143,6 @@ def generate_batch_settlement(
     """
     batch_settlement = []
     if webhook_data is not None:
-        # Generate settlements paired with provided webhook events
         for wh in webhook_data:
             result = single_settlement(
                 webhook_data=wh,
@@ -164,7 +151,6 @@ def generate_batch_settlement(
             )
             batch_settlement.append(result)
     else:
-        # Generate standalone synthetic settlements when no webhook data is provided
         for _ in range(count):
             result = single_settlement(
                 webhook_data=None,
@@ -206,7 +192,6 @@ def save_batch_csv(
     """
     target_path = Path(path)
 
-    # Check if target path specifies an exact file or a destination directory
     if target_path.suffix.lower() == ".csv":
         target_path.parent.mkdir(parents=True, exist_ok=True)
         target_file_path = target_path
@@ -222,11 +207,9 @@ def save_batch_csv(
                 )
         target_file_path = target_path / file_name
 
-    # Return resolved path early if no data records to write
     if not batch_data:
         return target_file_path
 
-    # Write CSV with header row and UTF-8 encoding
     with open(target_file_path, "w", encoding="utf-8", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=list(batch_data[0].keys()))
         writer.writeheader()

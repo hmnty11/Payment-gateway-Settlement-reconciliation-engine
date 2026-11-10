@@ -14,22 +14,18 @@ from spark_jobs.gen_and_ingestion_runner import (
 
 def test_split_webhooks_filters_out_anomalies():
     sample_webhooks = [
-        # Valid successful transaction
         {
             "event": {"status": "success"},
             "transaction": {"transaction_id": "trx_valid_1", "amount": 50000.0},
         },
-        # Anomaly: missing transaction_id
         {
             "event": {"status": "success"},
             "transaction": {"transaction_id": None, "amount": 50000.0},
         },
-        # Anomaly: negative or zero amount
         {
             "event": {"status": "success"},
             "transaction": {"transaction_id": "trx_invalid_2", "amount": -1000.0},
         },
-        # Anomaly: failed status
         {
             "event": {"status": "failed"},
             "transaction": {"transaction_id": "trx_failed_3", "amount": 75000.0},
@@ -53,8 +49,6 @@ def test_split_webhooks_buffer_split_probability():
         }
         for i in range(10)
     ]
-
-    # Hold all valid transactions in the pending buffer when late_rate is 1.0.
     settle_today, pending = split_webhooks_for_settlement(
         sample_webhooks, late_rate=1.0
     )
@@ -62,9 +56,20 @@ def test_split_webhooks_buffer_split_probability():
     assert len(pending) == 10
 
 
-def test_run_daily_ingestion_creates_hive_partitions_and_uploads(tmp_path: Path):
+def test_run_daily_ingestion_creates_hive_partitions_and_uploads(
+    tmp_path: Path, monkeypatch
+):
     mock_s3_client = MagicMock(spec=S3Client)
     test_date = date(2026, 11, 1)
+    monkeypatch.setattr("spark_jobs.gen_and_ingestion_runner.ENV_MODE", "local")
+    monkeypatch.setattr(
+        "spark_jobs.gen_and_ingestion_runner.BRONZE_WEBHOOKS_PATH",
+        "s3a://payment-recon/bronze/webhooks",
+    )
+    monkeypatch.setattr(
+        "spark_jobs.gen_and_ingestion_runner.BRONZE_SETTLEMENTS_PATH",
+        "s3a://payment-recon/bronze/settlements",
+    )
 
     with patch(
         "spark_jobs.gen_and_ingestion_runner.upload_file_to_bucket"
@@ -228,7 +233,6 @@ def test_pending_buffer_propagates_to_next_day():
     dummy_delayed_tx = {"transaction": {"transaction_id": "trx_delayed_001"}}
 
     with patch("spark_jobs.gen_and_ingestion_runner.run_daily_ingestion") as mock_daily:
-        # Day 1 produces one delayed transaction; Day 2 drains the buffer.
         mock_daily.side_effect = [
             {"target_date": date(2026, 11, 1), "pending_buffer": [dummy_delayed_tx]},
             {"target_date": date(2026, 11, 2), "pending_buffer": []},

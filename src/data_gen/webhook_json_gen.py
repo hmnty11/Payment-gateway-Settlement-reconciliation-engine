@@ -12,10 +12,8 @@ from pathlib import Path
 
 from faker import Faker
 
-# Initialize Faker instance for realistic synthetic data generation
 fake = Faker()
 
-# Allowed currency list matching payment gateway supported currencies
 currency = ["IDR", "USD", "SGD", "EUR"]
 
 
@@ -44,7 +42,6 @@ def generate_single_webhook(
     dict
         Hierarchical webhook payload adhering to the Bronze Data Contract.
     """
-    # Resolve timestamp: use target_date with random time or generate completely random timestamp
     if not target_date:
         timestamp = fake.date_time(UTC).isoformat()
     else:
@@ -52,7 +49,6 @@ def generate_single_webhook(
             target_date, fake.time_object(), tzinfo=UTC
         ).isoformat()
 
-    # Construct canonical Bronze webhook payload conforming to schema contract
     webhook_json = {
         "event_id": "evt_" + fake.hexify(text="^^^^^^^^^^^^"),
         "timestamp": timestamp,
@@ -96,7 +92,6 @@ def generate_single_webhook(
         },
     }
 
-    # Inject upstream data anomalies for DLQ and error handling pipelines
     if is_anomaly:
         anomaly = random.choice(
             ["missing_or_invalid_id", "invalid_amount", "invalid_currency"]
@@ -142,7 +137,6 @@ def generate_batch_webhook(
     list[dict]
         List of generated webhook event dictionaries.
     """
-    # Generate batch and randomly sample anomalies based on anomaly_rate
     batch_webhook = [
         generate_single_webhook(
             target_date=target_date, is_anomaly=random.random() < anomaly_rate
@@ -182,7 +176,6 @@ def save_batch_to_json(
     """
     target_path = Path(path)
 
-    # Check if target path specifies an exact file or a destination directory
     if target_path.suffix.lower() == ".json":
         target_path.parent.mkdir(parents=True, exist_ok=True)
         target_file_path = target_path
@@ -198,7 +191,6 @@ def save_batch_to_json(
                 )
         target_file_path = target_path / file_name
 
-    # Write formatted JSON to file
     with open(target_file_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
