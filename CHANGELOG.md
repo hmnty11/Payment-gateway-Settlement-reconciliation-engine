@@ -2,6 +2,35 @@
 
 <!-- version list -->
 
+## v1.5.0 (2026-11-10)
+
+### Chores
+
+- Reformatting using ruff
+  ([`114f286`](https://github.com/hmnty11/Payment-gateway-Settlement-reconciliation-engine/commit/114f286b241257418259f0a012aba94f9a69e06f))
+
+### Documentation
+
+- Doc string for new function
+  ([`4f2458e`](https://github.com/hmnty11/Payment-gateway-Settlement-reconciliation-engine/commit/4f2458e271765d79d02b182a3645f2fa22e3e115))
+
+- Update databricks volume path and test command in readme
+  ([`6bb1c19`](https://github.com/hmnty11/Payment-gateway-Settlement-reconciliation-engine/commit/6bb1c1940f89917b6bdf04113970b24f58868d81))
+
+### Features
+
+- Add databricks mode compatibility to spark ingestion runner
+  ([`2d7d3b6`](https://github.com/hmnty11/Payment-gateway-Settlement-reconciliation-engine/commit/2d7d3b6a626afc6a756bc48d534c0707d6f1a17f))
+
+- Align upload_file_to_volume signature with config defaults
+  ([`de58903`](https://github.com/hmnty11/Payment-gateway-Settlement-reconciliation-engine/commit/de5890323061a658742e8d3a7eece6c234b7242a))
+
+### Refactoring
+
+- Clean comment slop and isolate hive partition tests
+  ([`d1894e2`](https://github.com/hmnty11/Payment-gateway-Settlement-reconciliation-engine/commit/d1894e25ebb275aa6216d982552f041e086590a6))
+
+
 ## v1.4.0 (2026-11-09)
 
 ### Features
