@@ -35,7 +35,6 @@ def test_detect_environment_handles_whitespace_and_casing_local(monkeypatch):
     assert detect_environment() == "local"
 
 
-
 def test_resolve_storage_paths_local():
 
     storage_paths = resolve_storage_paths(mode="local")
@@ -62,6 +61,7 @@ def test_resolve_storage_paths_databricks():
         "/Volumes/workspace/payment_recon/bronze/fx_rates"
     )
     assert storage_paths["silver"].startswith("/Volumes/workspace/payment_recon/silver")
+
 
 def test_resolve_storage_paths_custom_name_bucket():
 

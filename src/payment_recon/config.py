@@ -95,6 +95,7 @@ def resolve_storage_paths(
 
     return storage_paths
 
+
 ENV_MODE: str = detect_environment()
 DATABRICKS_HOST: str = os.getenv("DATABRICKS_HOST", "")
 DATABRICKS_TOKEN: str = os.getenv("DATABRICKS_TOKEN", "")
