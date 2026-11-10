@@ -310,6 +310,14 @@ uv run pytest -v
 uv run pytest tests/test_config.py tests/test_generator tests/test_ingestion tests/test_spark_jobs
 ```
 
+### Run Smoke Tests
+Verify live storage connectivity and ingestion upload against MinIO (`local`) or Unity Catalog (`databricks`):
+
+```bash
+# Run Bronze ingestion smoke test
+uv run python scripts/smoke_test_ingestion.py
+```
+
 ### Code Formatting & Linting
 Enforce code quality standards with Ruff:
 
