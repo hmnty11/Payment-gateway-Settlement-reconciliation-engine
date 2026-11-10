@@ -108,7 +108,7 @@ A core engineering principle of this repository is **Environment Parity**: the e
 ```
 
 * **Local Mode (`ENV_MODE=local`):** Uses an S3A connector targeting a local MinIO container (`s3a://payment-recon/...`). Ideal for lightning-fast unit testing, offline development, and zero-cost CI/CD execution.
-* **Databricks Cloud Mode (`ENV_MODE=databricks`):** Automatically maps storage paths to Databricks Unity Catalog Volumes (`/Volumes/main/payment_recon/...`) using native cluster Spark sessions.
+* **Databricks Cloud Mode (`ENV_MODE=databricks`):** Automatically maps storage paths to Databricks Unity Catalog Volumes (default: `/Volumes/workspace/payment_recon/bronze`) using native cluster Spark sessions or Databricks SDK WorkspaceClient.
 
 ---
 
@@ -306,8 +306,8 @@ Execute the automated test suite across environment configuration, synthetic gen
 # Run all unit tests
 uv run pytest -v
 
-# Run non-Spark fast unit tests
-uv run pytest tests/test_config.py tests/test_generator tests/test_ingestion
+# Run fast unit tests
+uv run pytest tests/test_config.py tests/test_generator tests/test_ingestion tests/test_spark_jobs
 ```
 
 ### Code Formatting & Linting
