@@ -98,6 +98,46 @@ def test_run_daily_ingestion_creates_hive_partitions_and_uploads(tmp_path: Path)
         )
 
 
+def test_run_daily_ingestion_databricks_uploads_to_volume(tmp_path: Path, monkeypatch):
+    mock_dbx_client = MagicMock()
+    test_date = date(2026, 11, 1)
+    monkeypatch.setattr("spark_jobs.gen_and_ingestion_runner.ENV_MODE", "databricks")
+    monkeypatch.setattr(
+        "spark_jobs.gen_and_ingestion_runner.BRONZE_WEBHOOKS_PATH",
+        "/Volumes/workspace/payment_recon/bronze/webhooks",
+    )
+    monkeypatch.setattr(
+        "spark_jobs.gen_and_ingestion_runner.BRONZE_SETTLEMENTS_PATH",
+        "/Volumes/workspace/payment_recon/bronze/settlements",
+    )
+
+    with patch(
+        "spark_jobs.gen_and_ingestion_runner.upload_file_to_volume"
+    ) as mock_upload:
+        mock_upload.side_effect = [
+            "/Volumes/workspace/payment_recon/bronze/webhooks/year=2026/month=11/day=01/wh.json",
+            "/Volumes/workspace/payment_recon/bronze/settlements/year=2026/month=11/day=01/st.csv",
+        ]
+
+        result = run_daily_ingestion(
+            target_date=test_date,
+            num_records=5,
+            output_dir=tmp_path,
+            dbx_client=mock_dbx_client,
+        )
+
+        assert result["target_date"] == test_date
+        assert result["webhook_s3_uri"].startswith("/Volumes/")
+        assert result["settlement_s3_uri"].startswith("/Volumes/")
+        assert mock_upload.call_count == 2
+
+        webhook_key = mock_upload.call_args_list[0].args[1]
+        settlement_key = mock_upload.call_args_list[1].args[1]
+
+        assert webhook_key.startswith("webhooks/year=2026/month=11/day=01/")
+        assert settlement_key.startswith("settlements/year=2026/month=11/day=01/")
+
+
 def test_date_range_invalid_raises_error():
     mock_s3_client = MagicMock(spec=S3Client)
     with pytest.raises(ValueError, match="start_date cannot be greater than end_date"):
@@ -141,6 +181,46 @@ def test_date_range_multi_day_execution():
             date(2026, 11, 2),
             date(2026, 11, 3),
         ]
+
+
+def test_date_range_databricks_mode_passes_dbx_client(monkeypatch):
+    mock_dbx_client = MagicMock()
+    monkeypatch.setattr("spark_jobs.gen_and_ingestion_runner.ENV_MODE", "databricks")
+
+    with patch("spark_jobs.gen_and_ingestion_runner.run_daily_ingestion") as mock_daily:
+        mock_daily.return_value = {"pending_buffer": []}
+
+        run_date_range_ingestion(
+            start_date=date(2026, 11, 1),
+            end_date=date(2026, 11, 2),
+            dbx_client=mock_dbx_client,
+        )
+
+        assert mock_daily.call_count == 2
+        for call_item in mock_daily.call_args_list:
+            assert call_item.kwargs["dbx_client"] is mock_dbx_client
+            assert call_item.kwargs["s3_client"] is None
+
+
+def test_date_range_databricks_mode_initializes_dbx_client_only(monkeypatch):
+    mock_dbx_client = MagicMock()
+    monkeypatch.setattr("spark_jobs.gen_and_ingestion_runner.ENV_MODE", "databricks")
+
+    with (
+        patch(
+            "spark_jobs.gen_and_ingestion_runner.get_databricks_client",
+            return_value=mock_dbx_client,
+        ) as mock_get_dbx,
+        patch("spark_jobs.gen_and_ingestion_runner.get_s3_client") as mock_get_s3,
+        patch("spark_jobs.gen_and_ingestion_runner.run_daily_ingestion") as mock_daily,
+    ):
+        mock_daily.return_value = {"pending_buffer": []}
+
+        run_date_range_ingestion(start_date=date(2026, 11, 1))
+
+        mock_get_dbx.assert_called_once()
+        mock_get_s3.assert_not_called()
+        assert mock_daily.call_args.kwargs["dbx_client"] is mock_dbx_client
 
 
 def test_pending_buffer_propagates_to_next_day():

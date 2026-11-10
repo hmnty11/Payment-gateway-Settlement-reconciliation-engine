@@ -7,6 +7,8 @@ from datetime import date, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from databricks.sdk import WorkspaceClient
+
 if TYPE_CHECKING:
     from mypy_boto3_s3 import S3Client
 
@@ -18,10 +20,17 @@ from data_gen.webhook_json_gen import (
     generate_batch_webhook,
     save_batch_to_json,
 )
-from ingestion.storage_uploader import get_s3_client, upload_file_to_bucket
+from ingestion.storage_uploader import (
+    get_databricks_client,
+    get_s3_client,
+    upload_file_to_bucket,
+    upload_file_to_volume,
+)
 from payment_recon.config import (
     BRONZE_SETTLEMENTS_PATH,
     BRONZE_WEBHOOKS_PATH,
+    DATABRICKS_VOLUME_BASE_PATH,
+    ENV_MODE,
     STORAGE_BUCKET_NAME,
 )
 
@@ -65,9 +74,10 @@ def run_daily_ingestion(
     bucket_name: str = STORAGE_BUCKET_NAME,
     pending_buffer: list[dict] | None = None,
     s3_client: S3Client | None = None,
+    dbx_client: WorkspaceClient | None = None,
 ) -> dict:
     """
-    Generate daily webhooks and settlements, save locally, and upload to S3/MinIO.
+    Generate daily webhooks and settlements, save locally, and upload to storage.
 
     Parameters
     ----------
@@ -78,19 +88,20 @@ def run_daily_ingestion(
     output_dir : Path | str, default="./data_sample"
         Local directory path for temporary file persistence.
     bucket_name : str, default="payment-recon"
-        Destination S3 bucket name.
+        Destination S3 bucket name for local mode.
     pending_buffer : list[dict] | None, default=None
         Pending webhooks held over from previous dates to settle on `target_date`.
     s3_client : S3Client | None, default=None
-        Boto3 S3 client. Initialized via `get_s3_client()` if None.
+        Boto3 S3 client. Initialized via `get_s3_client()` if None in local mode.
+    dbx_client : WorkspaceClient | None, default=None
+        Databricks WorkspaceClient. Initialized via `get_databricks_client()` if None in databricks mode.
 
     Returns
     -------
     dict
-        Dictionary containing `target_date`, S3 URIs for webhooks and settlements,
+        Dictionary containing `target_date`, destination URIs for webhooks and settlements,
         and the updated `pending_buffer`.
     """
-    s3 = s3_client or get_s3_client()
     out = Path(output_dir)
     partition = f"year={target_date:%Y}/month={target_date:%m}/day={target_date:%d}"
 
@@ -104,22 +115,42 @@ def run_daily_ingestion(
     )
     st_file = save_batch_csv(batch_data=settlements, path=out / "bronze_settlements")
 
-    return {
-        "target_date": target_date,
-        "webhook_s3_uri": upload_file_to_bucket(
-            wh_file,
-            bucket_name,
-            f"{BRONZE_WEBHOOKS_PATH.removeprefix(f's3a://{bucket_name}/')}/{partition}/{wh_file.name}",
-            s3,
-        ),
-        "settlement_s3_uri": upload_file_to_bucket(
-            st_file,
-            bucket_name,
-            f"{BRONZE_SETTLEMENTS_PATH.removeprefix(f's3a://{bucket_name}/')}/{partition}/{st_file.name}",
-            s3,
-        ),
-        "pending_buffer": new_pending,
-    }
+    if ENV_MODE == "local":
+        s3 = s3_client or get_s3_client()
+        data = {
+            "target_date": target_date,
+            "webhook_s3_uri": upload_file_to_bucket(
+                wh_file,
+                bucket_name,
+                f"{BRONZE_WEBHOOKS_PATH.removeprefix(f's3a://{bucket_name}/')}/{partition}/{wh_file.name}",
+                s3,
+            ),
+            "settlement_s3_uri": upload_file_to_bucket(
+                st_file,
+                bucket_name,
+                f"{BRONZE_SETTLEMENTS_PATH.removeprefix(f's3a://{bucket_name}/')}/{partition}/{st_file.name}",
+                s3,
+            ),
+            "pending_buffer": new_pending,
+        }
+
+    elif ENV_MODE == "databricks":
+        dbx = dbx_client or get_databricks_client()
+        data = {
+            "target_date": target_date,
+            "webhook_s3_uri": upload_file_to_volume(
+                wh_file,
+                f"{BRONZE_WEBHOOKS_PATH.removeprefix(f'{DATABRICKS_VOLUME_BASE_PATH}/')}/{partition}/{wh_file.name}",
+                dbx_client=dbx,
+            ),
+            "settlement_s3_uri": upload_file_to_volume(
+                st_file,
+                f"{BRONZE_SETTLEMENTS_PATH.removeprefix(f'{DATABRICKS_VOLUME_BASE_PATH}/')}/{partition}/{st_file.name}",
+                dbx_client=dbx,
+            ),
+            "pending_buffer": new_pending,
+        }
+    return data
 
 
 def run_date_range_ingestion(
@@ -129,6 +160,7 @@ def run_date_range_ingestion(
     output_dir: Path | str = "./data_sample",
     bucket_name: str = STORAGE_BUCKET_NAME,
     s3_client: S3Client | None = None,
+    dbx_client: WorkspaceClient | None = None,
 ) -> list[dict]:
     """
     Run daily ingestion across a date range, carrying pending webhooks forward each day.
@@ -144,9 +176,11 @@ def run_date_range_ingestion(
     output_dir : Path | str, default="./data_sample"
         Local directory path for temporary file persistence.
     bucket_name : str, default="payment-recon"
-        Destination S3 bucket name.
+        Destination S3 bucket name for local mode.
     s3_client : S3Client | None, default=None
-        Boto3 S3 client. Initialized via `get_s3_client()` if None.
+        Boto3 S3 client. Initialized via `get_s3_client()` if None in local mode.
+    dbx_client : WorkspaceClient | None, default=None
+        Databricks WorkspaceClient. Initialized via `get_databricks_client()` if None in databricks mode.
 
     Returns
     -------
@@ -162,7 +196,12 @@ def run_date_range_ingestion(
     if start_date > end:
         raise ValueError("start_date cannot be greater than end_date")
 
-    s3 = s3_client or get_s3_client()
+    s3 = (s3_client or get_s3_client()) if ENV_MODE == "local" else s3_client
+    dbx = (
+        (dbx_client or get_databricks_client())
+        if ENV_MODE == "databricks"
+        else dbx_client
+    )
     buffer: list[dict] = []
     results: list[dict] = []
 
@@ -175,6 +214,7 @@ def run_date_range_ingestion(
             bucket_name=bucket_name,
             pending_buffer=buffer,
             s3_client=s3,
+            dbx_client=dbx,
         )
         buffer = res["pending_buffer"]
         results.append(res)
@@ -182,6 +222,5 @@ def run_date_range_ingestion(
     return results
 
 
-# manual testing
 if __name__ == "__main__":
     run_date_range_ingestion(start_date=date(2025, 1, 1), end_date=date(2026, 1, 1))
