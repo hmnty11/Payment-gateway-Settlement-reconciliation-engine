@@ -17,8 +17,7 @@ from spark_jobs.gen_and_ingestion_runner import run_daily_ingestion
 
 
 def run_ingestion_smoke_test(
-    target_date: date | None = None,
-    num_records: int = 10,
+    target_date: date | None = None, num_records: int = 10, clean_up: bool = True
 ) -> dict[str, str | int]:
     """
     Execute ingestion smoke test and verify destination storage objects.
@@ -29,6 +28,8 @@ def run_ingestion_smoke_test(
         Target date for batch generation. Defaults to today's date.
     num_records : int, default=10
         Number of synthetic records to generate and upload.
+    clean_up: bool , default=True
+        cleaning after test
 
     Returns
     -------
@@ -61,12 +62,21 @@ def run_ingestion_smoke_test(
         st_meta = s3.head_object(Bucket=STORAGE_BUCKET_NAME, Key=st_key)
         wh_size = wh_meta.get("ContentLength", 0)
         st_size = st_meta.get("ContentLength", 0)
+
+        if clean_up == True:
+            s3.delete_object(Bucket=STORAGE_BUCKET_NAME, Key=wh_key)
+            s3.delete_object(Bucket=STORAGE_BUCKET_NAME, Key=st_key)
+
     elif ENV_MODE == "databricks":
         dbx = get_databricks_client()
         wh_meta = dbx.files.get_metadata(wh_uri)
         st_meta = dbx.files.get_metadata(st_uri)
         wh_size = wh_meta.content_length or 0
         st_size = st_meta.content_length or 0
+
+        if clean_up == True:
+            dbx.files.delete(wh_uri)
+            dbx.files.delete(st_uri)
     else:
         raise ValueError(f"Unsupported ENV_MODE: {ENV_MODE}")
 

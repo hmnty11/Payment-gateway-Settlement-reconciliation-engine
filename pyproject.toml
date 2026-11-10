@@ -26,7 +26,6 @@ dev = [
     "boto3-stubs[s3]>=1.43.124",
     "delta-spark>=4.4.1",
     "faker>=40.44.0",
-    "moto[s3]>=5.2.5",
     "pyspark>=4.2.0",
     "pytest>=9.1.1",
     "python-semantic-release>=10.7.0",
