@@ -1,6 +1,6 @@
 [project]
 name = "payment-recon"
-version = "1.5.0"
+version = "1.6.0"
 description = "Cross-Border Payment Gateway & Settlement Reconciliation Engine"
 readme = "README.md"
 authors = [

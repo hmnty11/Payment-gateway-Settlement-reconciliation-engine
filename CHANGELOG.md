@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v1.6.0 (2026-11-10)
+
+### Chores
+
+- Add removng data after test and removing moto form dev dependencies
+  ([`01f3ce1`](https://github.com/hmnty11/Payment-gateway-Settlement-reconciliation-engine/commit/01f3ce1de192eb3bb08234731efc0bba270a431c))
+
+### Features
+
+- **smoke**: Add bronze ingestion smoke test script
+  ([`7245d51`](https://github.com/hmnty11/Payment-gateway-Settlement-reconciliation-engine/commit/7245d51a879b98d163f598f6356b819b4997df10))
+
+
 ## v1.5.0 (2026-11-10)
 
 ### Chores
