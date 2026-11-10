@@ -37,8 +37,15 @@ def detect_environment(env_source: Mapping[str, str] | None = None) -> str:
         return "local"
 
 
+DATABRICKS_VOLUME_BASE_PATH: str = os.getenv(
+    "DATABRICKS_VOLUME_BASE_PATH", "/Volumes/workspace/payment_recon/bronze"
+)
+
+
 def resolve_storage_paths(
-    mode: str, bucket_name: str = "payment-recon"
+    mode: str,
+    bucket_name: str = "payment-recon",
+    volume_base_path: str = DATABRICKS_VOLUME_BASE_PATH,
 ) -> dict[str, str]:
     """
     Resolve storage paths for Bronze and Silver layers based on runtime mode.
@@ -49,6 +56,8 @@ def resolve_storage_paths(
         Target runtime mode ('local' or 'databricks').
     bucket_name : str, default="payment-recon"
         Target MinIO bucket name for local S3A URIs.
+    volume_base_path : str, default=DATABRICKS_VOLUME_BASE_PATH
+        Base Unity Catalog Volume path for Databricks runtime mode.
 
     Returns
     -------
@@ -68,19 +77,23 @@ def resolve_storage_paths(
 
     if normalized_mode == "local":
         base_path = f"s3a://{bucket_name}"
+        storage_paths = {
+            "webhooks": f"{base_path}/bronze/webhooks",
+            "settlements": f"{base_path}/bronze/settlements",
+            "fx_rates": f"{base_path}/bronze/fx_rates",
+            "silver": f"{base_path}/silver",
+        }
 
     elif normalized_mode == "databricks":
-        base_path = "/Volumes/workspace/payment_recon"
-
-    storage_paths = {
-        "webhooks": f"{base_path}/bronze/webhooks",
-        "settlements": f"{base_path}/bronze/settlements",
-        "fx_rates": f"{base_path}/bronze/fx_rates",
-        "silver": f"{base_path}/silver",
-    }
+        base_path = volume_base_path.rstrip("/")
+        storage_paths = {
+            "webhooks": f"{base_path}/webhooks",
+            "settlements": f"{base_path}/settlements",
+            "fx_rates": f"{base_path}/fx_rates",
+            "silver": f"{base_path.removesuffix('/bronze')}/silver",
+        }
 
     return storage_paths
-
 
 ENV_MODE: str = detect_environment()
 DATABRICKS_HOST: str = os.getenv("DATABRICKS_HOST", "")

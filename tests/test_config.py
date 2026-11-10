@@ -3,9 +3,6 @@ import pytest
 from payment_recon.config import detect_environment, resolve_storage_paths
 
 
-# ===============================================
-#              detect enviroment
-# ===============================================
 def test_detect_environment_local(monkeypatch):
     monkeypatch.setenv("ENV_MODE", "local")
 
@@ -38,10 +35,6 @@ def test_detect_environment_handles_whitespace_and_casing_local(monkeypatch):
     assert detect_environment() == "local"
 
 
-# =======================================
-#           resolve storage path
-# =======================================
-
 
 def test_resolve_storage_paths_local():
 
@@ -69,7 +62,6 @@ def test_resolve_storage_paths_databricks():
         "/Volumes/workspace/payment_recon/bronze/fx_rates"
     )
     assert storage_paths["silver"].startswith("/Volumes/workspace/payment_recon/silver")
-
 
 def test_resolve_storage_paths_custom_name_bucket():
 

@@ -16,7 +16,6 @@ from ingestion.storage_uploader import (
 from payment_recon.config import MINIO_ACCESS_KEY, MINIO_ENDPOINT, MINIO_SECRET_KEY
 
 
-# get client
 def test_get_s3_client():
     with patch("ingestion.storage_uploader.boto3.client") as mock_get_s3_client:
         get_s3_client()
@@ -29,7 +28,6 @@ def test_get_s3_client():
         )
 
 
-# ensure bucket
 def test_ensure_bucket_exists_when_not_found():
     mock_s3_client = MagicMock(spec=S3Client)
     mock_s3_client.head_bucket.side_effect = ClientError(
@@ -66,7 +64,6 @@ def test_ensure_bucket_exists_raises_on_other_client_error():
     mock_s3_client.create_bucket.assert_not_called()
 
 
-# upload file
 def test_upload_file_success_with_custom_key(tmp_path: Path):
     file = tmp_path / "settlement.csv"
     file.write_text("sample_text")
@@ -165,14 +162,12 @@ def test_get_databricks_client_missing_credentials_raises_error(monkeypatch):
 
 def test_upload_file_to_volume_missing_file_raises_error(tmp_path: Path):
     path = tmp_path / "webhook.json"
-
     mock_dbx = MagicMock(spec=WorkspaceClient)
 
     with pytest.raises(FileNotFoundError):
         upload_file_to_volume(
             file_path=path,
             object_key="data_sample/bronze/webhook.json",
-            volume_base_path="/Volumes/workspace/payment_recon/bronze",
             dbx_client=mock_dbx,
         )
 
@@ -182,7 +177,6 @@ def test_upload_file_to_volume_missing_file_raises_error(tmp_path: Path):
 def test_upload_file_to_volume_success_and_path_normalization(tmp_path: Path):
     path = tmp_path / "webhook.json"
     path.write_text('{"event": "test"}')
-
     mock_dbx = MagicMock(spec=WorkspaceClient)
 
     expected_target_path = (
@@ -192,7 +186,6 @@ def test_upload_file_to_volume_success_and_path_normalization(tmp_path: Path):
     url = upload_file_to_volume(
         file_path=path,
         object_key="/bronze/webhooks/year=2026/webhook.json",
-        volume_base_path="/Volumes/workspace/payment_recon/bronze",
         dbx_client=mock_dbx,
     )
 
@@ -200,6 +193,24 @@ def test_upload_file_to_volume_success_and_path_normalization(tmp_path: Path):
         file_path=expected_target_path, contents=ANY, overwrite=True
     )
     assert url == expected_target_path
+
+
+def test_upload_file_to_volume_default_key_fallback(tmp_path: Path):
+    path = tmp_path / "webhook.json"
+    path.write_text('{"event": "test"}')
+    mock_dbx = MagicMock(spec=WorkspaceClient)
+
+    url = upload_file_to_volume(
+        file_path=path,
+        dbx_client=mock_dbx,
+    )
+
+    mock_dbx.files.upload.assert_called_once_with(
+        file_path="/Volumes/workspace/payment_recon/bronze/webhook.json",
+        contents=ANY,
+        overwrite=True,
+    )
+    assert url == "/Volumes/workspace/payment_recon/bronze/webhook.json"
 
 
 def test_upload_file_to_volume_propagates_sdk_error(tmp_path: Path):
@@ -212,6 +223,5 @@ def test_upload_file_to_volume_propagates_sdk_error(tmp_path: Path):
         upload_file_to_volume(
             file_path=path,
             object_key="/bronze/webhooks/year=2026/webhook.json",
-            volume_base_path="/Volumes/workspace/payment_recon/bronze",
             dbx_client=mock_dbx,
         )

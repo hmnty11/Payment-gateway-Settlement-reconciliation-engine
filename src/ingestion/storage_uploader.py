@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 from payment_recon.config import (
     DATABRICKS_HOST,
     DATABRICKS_TOKEN,
+    DATABRICKS_VOLUME_BASE_PATH,
     MINIO_ACCESS_KEY,
     MINIO_ENDPOINT,
     MINIO_SECRET_KEY,
@@ -164,8 +165,8 @@ def get_databricks_client(
 
 def upload_file_to_volume(
     file_path: Path | str,
-    object_key: str,
-    volume_base_path: str,
+    object_key: str | None = None,
+    volume_base_path: str = DATABRICKS_VOLUME_BASE_PATH,
     dbx_client: WorkspaceClient | None = None,
 ) -> str:
     """
@@ -178,10 +179,10 @@ def upload_file_to_volume(
     ----------
     file_path : Path | str
         Path to the local source file.
-    object_key : str
-        Relative destination path inside the volume.
-    volume_base_path : str
-        Base Unity Catalog Volume path (e.g. '/Volumes/workspace/payment_recon/bronze').
+    object_key : str | None, default=None
+        Relative destination path inside the volume. Defaults to the source file name if None.
+    volume_base_path : str, default=DATABRICKS_VOLUME_BASE_PATH
+        Base Unity Catalog Volume path.
     dbx_client : WorkspaceClient | None, default=None
         Databricks WorkspaceClient. Initialized via `get_databricks_client()` if None.
 
@@ -204,7 +205,11 @@ def upload_file_to_volume(
         dbx_client = get_databricks_client(host=DATABRICKS_HOST, token=DATABRICKS_TOKEN)
 
     volume_base_path = volume_base_path.rstrip("/")
-    object_key = object_key.lstrip("/").removeprefix("bronze/")
+
+    if not object_key:
+        object_key = file_path.name.lstrip("/")
+    else:
+        object_key = object_key.lstrip("/").removeprefix("bronze/")
 
     target_volume_path = f"{volume_base_path}/{object_key}"
 
