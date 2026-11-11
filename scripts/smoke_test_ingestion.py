@@ -28,8 +28,8 @@ def run_ingestion_smoke_test(
         Target date for batch generation. Defaults to today's date.
     num_records : int, default=10
         Number of synthetic records to generate and upload.
-    clean_up: bool , default=True
-        cleaning after test
+    clean_up : bool, default=True
+        Whether to delete uploaded test objects after verification.
 
     Returns
     -------
@@ -63,7 +63,7 @@ def run_ingestion_smoke_test(
         wh_size = wh_meta.get("ContentLength", 0)
         st_size = st_meta.get("ContentLength", 0)
 
-        if clean_up == True:
+        if clean_up:
             s3.delete_object(Bucket=STORAGE_BUCKET_NAME, Key=wh_key)
             s3.delete_object(Bucket=STORAGE_BUCKET_NAME, Key=st_key)
 
@@ -74,7 +74,7 @@ def run_ingestion_smoke_test(
         wh_size = wh_meta.content_length or 0
         st_size = st_meta.content_length or 0
 
-        if clean_up == True:
+        if clean_up:
             dbx.files.delete(wh_uri)
             dbx.files.delete(st_uri)
     else:
