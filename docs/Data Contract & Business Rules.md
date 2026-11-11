@@ -18,7 +18,7 @@ Log peristiwa *webhook* yang diterima secara *micro-batch* dari gateway pembayar
 | `event.category` | String | Ya | Kategori peristiwa (misal: `payment`). |
 | `event.action` | String | Ya | Aksi peristiwa (misal: `payment_status_updated`). |
 | `event.status` | String | Ya | Status transaksi: `pending`, `success`, `failed`, `cancelled`. |
-| `transaction.transaction_id` | String | Ya | Kunci unik bisnis transaksi (`tx_<id>`). Digunakan untuk deduplikasi state dan rekonsiliasi. |
+| `transaction.transaction_id` | String | Ya | Kunci unik bisnis transaksi (`trx_<alphanumeric>`). Digunakan untuk deduplikasi state dan rekonsiliasi. |
 | `transaction.reference_id` | String | Ya | Nomor referensi pesanan/invoice dari merchant. |
 | `transaction.gateway_name` | String | Ya | Nama gateway penyedia layanan (misal: `midtrans`, `stripe`). |
 | `transaction.payment_method` | String | Ya | Metode bayar: `credit_card`, `qris`, `bank_transfer`, `e_wallet`. |
@@ -77,6 +77,7 @@ Data yang mengalami kerusakan teknis sistematis **dilarang** masuk ke tabel Silv
 2. **Missing Business Identity:** Baris dengan `transaction.transaction_id IS NULL` atau bernilai string kosong.
 3. **Invalid Monetary Value:** Nilai `transaction.amount IS NULL` atau `transaction.amount <= 0`.
 4. **Missing Timestamp:** Nilai `timestamp IS NULL`.
+5. **Invalid Currency:** Nilai `transaction.currency IS NULL` atau tidak termasuk dalam daftar mata uang yang didukung (`USD`, `SGD`, `EUR`, `IDR`).
 
 ### B. Deduplikasi dan Idempotensi Data
 1. **Exact Duplicate Delivery:** Jika terdapat lebih dari satu log dengan `event_id` yang identik, simpan hanya satu baris pertama (`dropDuplicates(['event_id'])`).
