@@ -117,18 +117,28 @@ def run_daily_ingestion(
 
     if ENV_MODE == "local":
         s3 = s3_client or get_s3_client()
+        wh_base = (
+            BRONZE_WEBHOOKS_PATH.split("/", 3)[-1]
+            if BRONZE_WEBHOOKS_PATH.startswith("s3a://")
+            else BRONZE_WEBHOOKS_PATH.lstrip("/")
+        )
+        st_base = (
+            BRONZE_SETTLEMENTS_PATH.split("/", 3)[-1]
+            if BRONZE_SETTLEMENTS_PATH.startswith("s3a://")
+            else BRONZE_SETTLEMENTS_PATH.lstrip("/")
+        )
         data = {
             "target_date": target_date,
             "webhook_s3_uri": upload_file_to_bucket(
                 wh_file,
                 bucket_name,
-                f"{BRONZE_WEBHOOKS_PATH.removeprefix(f's3a://{bucket_name}/')}/{partition}/{wh_file.name}",
+                f"{wh_base}/{partition}/{wh_file.name}",
                 s3,
             ),
             "settlement_s3_uri": upload_file_to_bucket(
                 st_file,
                 bucket_name,
-                f"{BRONZE_SETTLEMENTS_PATH.removeprefix(f's3a://{bucket_name}/')}/{partition}/{st_file.name}",
+                f"{st_base}/{partition}/{st_file.name}",
                 s3,
             ),
             "pending_buffer": new_pending,
@@ -136,20 +146,28 @@ def run_daily_ingestion(
 
     elif ENV_MODE == "databricks":
         dbx = dbx_client or get_databricks_client()
+        wh_sub = BRONZE_WEBHOOKS_PATH.removeprefix(
+            f"{DATABRICKS_VOLUME_BASE_PATH}/"
+        ).lstrip("/")
+        st_sub = BRONZE_SETTLEMENTS_PATH.removeprefix(
+            f"{DATABRICKS_VOLUME_BASE_PATH}/"
+        ).lstrip("/")
         data = {
             "target_date": target_date,
             "webhook_s3_uri": upload_file_to_volume(
                 wh_file,
-                f"{BRONZE_WEBHOOKS_PATH.removeprefix(f'{DATABRICKS_VOLUME_BASE_PATH}/')}/{partition}/{wh_file.name}",
+                f"{wh_sub}/{partition}/{wh_file.name}",
                 dbx_client=dbx,
             ),
             "settlement_s3_uri": upload_file_to_volume(
                 st_file,
-                f"{BRONZE_SETTLEMENTS_PATH.removeprefix(f'{DATABRICKS_VOLUME_BASE_PATH}/')}/{partition}/{st_file.name}",
+                f"{st_sub}/{partition}/{st_file.name}",
                 dbx_client=dbx,
             ),
             "pending_buffer": new_pending,
         }
+    else:
+        raise ValueError(f"Unsupported ENV_MODE: {ENV_MODE}")
     return data
 
 

@@ -251,3 +251,38 @@ def test_pending_buffer_propagates_to_next_day():
 
         second_call_buffer = mock_daily.call_args_list[1].kwargs["pending_buffer"]
         assert second_call_buffer == [dummy_delayed_tx]
+
+
+def test_run_daily_ingestion_custom_bucket_name(tmp_path: Path, monkeypatch):
+    mock_s3_client = MagicMock(spec=S3Client)
+    test_date = date(2026, 11, 1)
+    monkeypatch.setattr("spark_jobs.gen_and_ingestion_runner.ENV_MODE", "local")
+
+    with patch(
+        "spark_jobs.gen_and_ingestion_runner.upload_file_to_bucket"
+    ) as mock_upload:
+        mock_upload.side_effect = [
+            "s3a://custom-bucket/bronze/webhooks/year=2026/month=11/day=01/wh.json",
+            "s3a://custom-bucket/bronze/settlements/year=2026/month=11/day=01/st.csv",
+        ]
+
+        result = run_daily_ingestion(
+            target_date=test_date,
+            num_records=5,
+            output_dir=tmp_path,
+            bucket_name="custom-bucket",
+            s3_client=mock_s3_client,
+        )
+
+        assert result["webhook_s3_uri"].startswith("s3a://custom-bucket/")
+        webhook_key = mock_upload.call_args_list[0].args[2]
+        assert webhook_key.startswith("bronze/webhooks/year=2026/month=11/day=01/")
+        assert not webhook_key.startswith("s3a://")
+
+
+def test_run_daily_ingestion_unsupported_mode_raises_error(tmp_path: Path, monkeypatch):
+    monkeypatch.setattr(
+        "spark_jobs.gen_and_ingestion_runner.ENV_MODE", "unsupported_cloud"
+    )
+    with pytest.raises(ValueError, match="Unsupported ENV_MODE"):
+        run_daily_ingestion(target_date=date(2026, 11, 1), output_dir=tmp_path)
