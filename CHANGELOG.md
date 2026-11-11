@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v1.7.0 (2026-11-11)
+
+### Documentation
+
+- Change naming
+  ([`5384390`](https://github.com/hmnty11/Payment-gateway-Settlement-reconciliation-engine/commit/53843900039345909e1c298ee5b5ea8a284cfdbf))
+
+### Features
+
+- Flatten and cast webhook function
+  ([`574f196`](https://github.com/hmnty11/Payment-gateway-Settlement-reconciliation-engine/commit/574f196d6c29fdad6f2bd1146ccd3f59f8400d7d))
+
+
 ## v1.6.0 (2026-11-10)
 
 ### Chores
