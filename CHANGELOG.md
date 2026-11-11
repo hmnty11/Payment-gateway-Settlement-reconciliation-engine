@@ -2,6 +2,24 @@
 
 <!-- version list -->
 
+## v1.7.1 (2026-11-11)
+
+### Bug Fixes
+
+- **runner**: Resolve relative S3 keys for custom buckets and validate ENV_MODE
+  ([`2a4f4f3`](https://github.com/hmnty11/Payment-gateway-Settlement-reconciliation-engine/commit/2a4f4f33b88071c9d2a911d7e8c47822c3e49bd6))
+
+### Chores
+
+- **env**: Remove spaces around equals signs in .env.example
+  ([`5d9578a`](https://github.com/hmnty11/Payment-gateway-Settlement-reconciliation-engine/commit/5d9578a1a4b5cc622e4e4b045ef3e43e8e9e868a))
+
+### Refactoring
+
+- **smoke**: Simplify clean_up flag check and fix docstring
+  ([`188219b`](https://github.com/hmnty11/Payment-gateway-Settlement-reconciliation-engine/commit/188219bcbbc9bb9cfa509f3d1c4ac1e1d1c1543a))
+
+
 ## v1.7.0 (2026-11-11)
 
 ### Documentation
