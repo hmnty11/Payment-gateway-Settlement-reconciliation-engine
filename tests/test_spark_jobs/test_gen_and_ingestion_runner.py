@@ -13,6 +13,7 @@ from spark_jobs.gen_and_ingestion_runner import (
 
 
 def test_split_webhooks_filters_out_anomalies():
+    """Verify split_webhooks_for_settlement excludes anomalies and failed events."""
     sample_webhooks = [
         {
             "event": {"status": "success"},
@@ -42,6 +43,7 @@ def test_split_webhooks_filters_out_anomalies():
 
 
 def test_split_webhooks_buffer_split_probability():
+    """Verify 100% late rate routes all valid webhooks to the pending buffer."""
     sample_webhooks = [
         {
             "event": {"status": "success"},
@@ -59,6 +61,7 @@ def test_split_webhooks_buffer_split_probability():
 def test_run_daily_ingestion_creates_hive_partitions_and_uploads(
     tmp_path: Path, monkeypatch
 ):
+    """Verify local daily ingestion builds Hive-style partition paths and uploads to S3."""
     mock_s3_client = MagicMock(spec=S3Client)
     test_date = date(2026, 11, 1)
     monkeypatch.setattr("spark_jobs.gen_and_ingestion_runner.ENV_MODE", "local")
@@ -104,6 +107,7 @@ def test_run_daily_ingestion_creates_hive_partitions_and_uploads(
 
 
 def test_run_daily_ingestion_databricks_uploads_to_volume(tmp_path: Path, monkeypatch):
+    """Verify Databricks mode uploads to Unity Catalog Volume normalized paths."""
     mock_dbx_client = MagicMock()
     test_date = date(2026, 11, 1)
     monkeypatch.setattr("spark_jobs.gen_and_ingestion_runner.ENV_MODE", "databricks")
@@ -144,6 +148,7 @@ def test_run_daily_ingestion_databricks_uploads_to_volume(tmp_path: Path, monkey
 
 
 def test_date_range_invalid_raises_error():
+    """Verify ValueError is raised when start_date is later than end_date."""
     mock_s3_client = MagicMock(spec=S3Client)
     with pytest.raises(ValueError, match="start_date cannot be greater than end_date"):
         run_date_range_ingestion(
@@ -154,6 +159,7 @@ def test_date_range_invalid_raises_error():
 
 
 def test_single_day_default_fallback():
+    """Verify omitting end_date defaults execution to a single target_date."""
     mock_s3_client = MagicMock(spec=S3Client)
 
     with patch("spark_jobs.gen_and_ingestion_runner.run_daily_ingestion") as mock_daily:
@@ -166,6 +172,7 @@ def test_single_day_default_fallback():
 
 
 def test_date_range_multi_day_execution():
+    """Verify date range iterator traverses days sequentially from start to end."""
     mock_s3_client = MagicMock(spec=S3Client)
 
     with patch("spark_jobs.gen_and_ingestion_runner.run_daily_ingestion") as mock_daily:
@@ -189,6 +196,7 @@ def test_date_range_multi_day_execution():
 
 
 def test_date_range_databricks_mode_passes_dbx_client(monkeypatch):
+    """Verify provided Databricks client propagates across daily iterations."""
     mock_dbx_client = MagicMock()
     monkeypatch.setattr("spark_jobs.gen_and_ingestion_runner.ENV_MODE", "databricks")
 
@@ -208,6 +216,7 @@ def test_date_range_databricks_mode_passes_dbx_client(monkeypatch):
 
 
 def test_date_range_databricks_mode_initializes_dbx_client_only(monkeypatch):
+    """Verify Databricks mode initializes WorkspaceClient and avoids S3 client creation."""
     mock_dbx_client = MagicMock()
     monkeypatch.setattr("spark_jobs.gen_and_ingestion_runner.ENV_MODE", "databricks")
 
@@ -229,6 +238,7 @@ def test_date_range_databricks_mode_initializes_dbx_client_only(monkeypatch):
 
 
 def test_pending_buffer_propagates_to_next_day():
+    """Verify delayed pending transactions carry over sequentially to subsequent days."""
     mock_s3_client = MagicMock(spec=S3Client)
     dummy_delayed_tx = {"transaction": {"transaction_id": "trx_delayed_001"}}
 
@@ -254,6 +264,7 @@ def test_pending_buffer_propagates_to_next_day():
 
 
 def test_run_daily_ingestion_custom_bucket_name(tmp_path: Path, monkeypatch):
+    """Verify custom bucket names resolve cleanly without prepending S3A URI prefixes."""
     mock_s3_client = MagicMock(spec=S3Client)
     test_date = date(2026, 11, 1)
     monkeypatch.setattr("spark_jobs.gen_and_ingestion_runner.ENV_MODE", "local")
@@ -281,6 +292,7 @@ def test_run_daily_ingestion_custom_bucket_name(tmp_path: Path, monkeypatch):
 
 
 def test_run_daily_ingestion_unsupported_mode_raises_error(tmp_path: Path, monkeypatch):
+    """Verify unsupported ENV_MODE triggers an explicit ValueError."""
     monkeypatch.setattr(
         "spark_jobs.gen_and_ingestion_runner.ENV_MODE", "unsupported_cloud"
     )
