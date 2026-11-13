@@ -170,3 +170,31 @@ def test_save_batch_to_json_with_explicit_filepath(tmp_path: Path):
 
     assert result_path == explicit_file
     assert result_path.exists()
+
+
+def test_save_batch_to_json_empty_batch(tmp_path: Path):
+    """Verify boundary case: saving an empty batch of webhook records."""
+    test_dir = tmp_path / "empty_batch"
+    result_path = save_batch_to_json(data=[], path=test_dir)
+
+    assert result_path.exists()
+    assert result_path.is_file()
+    with open(result_path, encoding="utf-8") as f:
+        content = json.load(f)
+    assert content == []
+
+
+def test_save_batch_to_json_explicit_filename(tmp_path: Path):
+    """Verify saving with explicit filename parameter."""
+    test_dir = tmp_path / "explicit_name"
+    result_path = save_batch_to_json(
+        data=[], path=test_dir, file_name="custom_named.json"
+    )
+    assert result_path.name == "custom_named.json"
+    assert result_path.exists()
+
+
+def test_generate_batch_negative_count():
+    """Verify boundary case: generating batch with negative count returns empty list."""
+    batch = generate_batch_webhook(-5)
+    assert batch == []

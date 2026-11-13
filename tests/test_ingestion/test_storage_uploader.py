@@ -225,3 +225,18 @@ def test_upload_file_to_volume_propagates_sdk_error(tmp_path: Path):
             object_key="/bronze/webhooks/year=2026/webhook.json",
             dbx_client=mock_dbx,
         )
+
+
+def test_upload_file_to_volume_initializes_client_if_none(tmp_path: Path):
+    """Verify upload_file_to_volume instantiates Databricks client when dbx_client=None."""
+    path = tmp_path / "wh.json"
+    path.write_text("{}")
+    mock_dbx = MagicMock(spec=WorkspaceClient)
+
+    with patch(
+        "ingestion.storage_uploader.get_databricks_client", return_value=mock_dbx
+    ) as mock_get_dbx:
+        url = upload_file_to_volume(file_path=path, dbx_client=None)
+        mock_get_dbx.assert_called_once()
+        mock_dbx.files.upload.assert_called_once()
+        assert url.startswith("/Volumes/")

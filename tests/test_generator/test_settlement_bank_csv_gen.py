@@ -151,3 +151,31 @@ def test_save_batch_csv_directory_mode(tmp_path: Path):
     assert result_path.exists()
     assert result_path.is_file()
     assert result_path.suffix == ".csv"
+
+
+def test_save_batch_csv_empty_batch(tmp_path: Path):
+    """Verify boundary case: saving empty batch or None data does not crash."""
+    target_dir = tmp_path / "empty_settlements"
+    result_path = save_batch_csv(batch_data=[], path=target_dir)
+    assert result_path.parent.exists()
+
+    explicit_csv = tmp_path / "empty.csv"
+    result_path_explicit = save_batch_csv(batch_data=None, path=explicit_csv)
+    assert result_path_explicit == explicit_csv
+
+
+def test_save_batch_csv_explicit_filename(tmp_path: Path):
+    """Verify saving with explicit filename parameter."""
+    target_dir = tmp_path / "explicit_name"
+    data = generate_batch_settlement(count=1, anomaly_rate=0.0)
+    result_path = save_batch_csv(
+        batch_data=data, path=target_dir, file_name="settlement_custom.csv"
+    )
+    assert result_path.name == "settlement_custom.csv"
+    assert result_path.exists()
+
+
+def test_generate_batch_settlement_negative_or_zero_count():
+    """Verify boundary case: zero or negative count generates empty list."""
+    assert generate_batch_settlement(webhook_data=None, count=0) == []
+    assert generate_batch_settlement(webhook_data=None, count=-5) == []
