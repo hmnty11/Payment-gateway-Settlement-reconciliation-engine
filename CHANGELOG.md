@@ -2,6 +2,35 @@
 
 <!-- version list -->
 
+## v1.8.0 (2026-11-25)
+
+### Documentation
+
+- **tests**: Add docstrings to spark job runner and spark session tests
+  ([`21be700`](https://github.com/hmnty11/Payment-gateway-Settlement-reconciliation-engine/commit/21be7008dbd8a25088b1d6fb526fd7eaa46203d5))
+
+### Features
+
+- **silver**: Add quarantine_invalid_webhooks function
+  ([`088708f`](https://github.com/hmnty11/Payment-gateway-Settlement-reconciliation-engine/commit/088708f0f67b3966f952fdcd23bc59d9f007ff2e))
+
+### Refactoring
+
+- Trimming code lines and include corrupt colum inside dataframe for quarantined function
+  ([`e363e5e`](https://github.com/hmnty11/Payment-gateway-Settlement-reconciliation-engine/commit/e363e5eeea483b58ba349f3b05d1ba28d4cc3162))
+
+### Testing
+
+- **generator,ingestion**: Add boundary and edge-case unit tests
+  ([`c32f9ab`](https://github.com/hmnty11/Payment-gateway-Settlement-reconciliation-engine/commit/c32f9abfa55f11cc96762e15e480a4c91a43f803))
+
+- **smoke**: Add unit tests for ingestion smoke test script
+  ([`fbaa8ff`](https://github.com/hmnty11/Payment-gateway-Settlement-reconciliation-engine/commit/fbaa8ff7181f070b518fcf2d7358deec35dfecfc))
+
+- **spark**: Add session fixture and bronze-to-silver webhook transformation tests
+  ([`a4f3b85`](https://github.com/hmnty11/Payment-gateway-Settlement-reconciliation-engine/commit/a4f3b85040199976b14b3853ca17293f8dc2bd1d))
+
+
 ## v1.7.1 (2026-11-11)
 
 ### Bug Fixes
