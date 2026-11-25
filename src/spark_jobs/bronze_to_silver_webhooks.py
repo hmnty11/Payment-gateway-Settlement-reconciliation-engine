@@ -9,6 +9,8 @@ from pyspark.sql.types import DecimalType, StringType, TimestampType
 from payment_recon.config import BRONZE_WEBHOOKS_PATH, ENV_MODE
 from payment_recon.spark_session import get_spark_session
 
+currency = ["IDR", "USD", "SGD", "EUR"]
+
 valid_columns = [
     "event_id",
     "timestamp",
@@ -89,9 +91,57 @@ def quarantine_invalid_webhooks(df: DataFrame) -> tuple[DataFrame, DataFrame]:
     find and split up invalid webhooks from valid webhooks data
     """
 
-    # checking column exist or not
+    # checker rule
+    check_corrupt = F.when(
+        F.col("_corrupt_record").isNotNull(), F.lit("MALFORMED_JSON")
+    )
+    check_transaction_id = F.when(
+        (F.col("transaction_id").isNull()) | (F.trim(F.col("transaction_id")) == ""),
+        F.lit("MISSING_TRANSACTION_ID"),
+    )
+    check_amount = (
+        F.when(F.col("amount").isNull(), F.lit("INVALID_AMOUNT"))
+        .when(F.col("amount") == 0, F.lit("ZERO_AMOUNT"))
+        .when(F.col("amount") <= 0, F.lit("MINUS_AMOUNT"))
+    )
+    check_time = F.when(F.col("timestamp").isNull(), F.lit("MISSING_TIMESTAMP"))
+    check_currency = F.when(
+        (F.col("currency").isNull()) | (~F.col("currency").isin(currency)),
+        F.lit("INVALID_CURRENCY"),
+    )
 
-    pass
+    rule_list = [
+        check_transaction_id,
+        check_amount,
+        check_time,
+        check_currency,
+    ]
+
+    if "_corrupt_record" in df.columns:
+        rule_list.append(check_corrupt)
+
+    # insert reason for rejection column into df
+    df = df.withColumn(
+        "rejection_reason",
+        F.concat_ws("; ", *rule_list).cast(StringType()).alias("rejection_reason"),
+    )
+
+    # spliting up valid_df and quarantined_df
+    valid_df = df.filter(df.rejection_reason == "")
+    quarantined_df = df.filter(df.rejection_reason != "")
+
+    # cleaning up and tidying
+
+    # valid dataframe
+    drop_column = ["_corrupt_record", "rejection_reason"]
+    if "_corrupt_record" in df.columns:
+        valid_df = valid_df.drop(*drop_column)
+    else:
+        valid_df = valid_df.drop("rejection_reason")
+
+    # quarantined dataframe
+    quarantined_df = quarantined_df.withColumn("quarantined_at", F.current_timestamp())
+    return valid_df, quarantined_df
 
 
 if __name__ == "__main__":
