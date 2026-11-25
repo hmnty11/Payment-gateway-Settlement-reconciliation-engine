@@ -9,6 +9,25 @@ from pyspark.sql.types import DecimalType, StringType, TimestampType
 from payment_recon.config import BRONZE_WEBHOOKS_PATH, ENV_MODE
 from payment_recon.spark_session import get_spark_session
 
+valid_columns = [
+    "event_id",
+    "timestamp",
+    "environment",
+    "log_level",
+    "ip_address",
+    "user_id",
+    "event_status",
+    "transaction_id",
+    "reference_id",
+    "gateway_name",
+    "payment_method",
+    "amount",
+    "currency",
+    "status_code",
+    "approval_code",
+    "trace_id",
+]
+
 
 def flatten_and_cast_webhooks(df: DataFrame) -> DataFrame:
     """
@@ -24,7 +43,7 @@ def flatten_and_cast_webhooks(df: DataFrame) -> DataFrame:
     DataFrame
         Flattened DataFrame conforming to the Silver Webhook Data Contract.
     """
-    return df.select(
+    selected_columns = [
         F.trim(F.col("event_id")).cast(StringType()).alias("event_id"),
         F.trim(F.col("timestamp")).cast(TimestampType()).alias("timestamp"),
         F.trim(F.col("environment")).cast(StringType()).alias("environment"),
@@ -55,7 +74,24 @@ def flatten_and_cast_webhooks(df: DataFrame) -> DataFrame:
         .cast(StringType())
         .alias("approval_code"),
         F.trim(F.col("trace.trace_id")).cast(StringType()).alias("trace_id"),
-    )
+    ]
+
+    if "_corrupt_record" in df.columns:
+        selected_columns.append(
+            F.trim(F.col("_corrupt_record")).cast(StringType()).alias("_corrupt_record")
+        )
+
+    return df.select(*selected_columns)
+
+
+def quarantine_invalid_webhooks(df: DataFrame) -> tuple[DataFrame, DataFrame]:
+    """
+    find and split up invalid webhooks from valid webhooks data
+    """
+
+    # checking column exist or not
+
+    pass
 
 
 if __name__ == "__main__":
