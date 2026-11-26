@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from decimal import Decimal
 from typing import Any
 
@@ -14,72 +15,83 @@ from pyspark.sql.types import (
     TimestampType,
 )
 
-from spark_jobs.bronze_to_silver_webhooks import flatten_and_cast_webhooks
+from spark_jobs.bronze_to_silver_webhooks import (
+    flatten_and_cast_webhooks,
+    quarantine_invalid_webhooks,
+)
 
 
-def _build_raw_df(spark: SparkSession, rows: list[dict[str, Any]]) -> DataFrame:
+def _build_raw_df(
+    spark: SparkSession,
+    rows: list[dict[str, Any]],
+    include_corrupt_record: bool = False,
+) -> DataFrame:
     """Helper to construct a raw bronze webhook DataFrame with hierarchical JSON schema."""
-    schema = StructType(
-        [
-            StructField("event_id", StringType(), True),
-            StructField("timestamp", StringType(), True),
-            StructField("environment", StringType(), True),
-            StructField("log_level", StringType(), True),
-            StructField(
-                "actor",
-                StructType(
-                    [
-                        StructField("ip_address", StringType(), True),
-                        StructField("user_id", StringType(), True),
-                    ]
-                ),
-                True,
+    schema = [
+        StructField("event_id", StringType(), True),
+        StructField("timestamp", StringType(), True),
+        StructField("environment", StringType(), True),
+        StructField("log_level", StringType(), True),
+        StructField(
+            "actor",
+            StructType(
+                [
+                    StructField("ip_address", StringType(), True),
+                    StructField("user_id", StringType(), True),
+                ]
             ),
-            StructField(
-                "event",
-                StructType(
-                    [
-                        StructField("status", StringType(), True),
-                    ]
-                ),
-                True,
+            True,
+        ),
+        StructField(
+            "event",
+            StructType(
+                [
+                    StructField("status", StringType(), True),
+                ]
             ),
-            StructField(
-                "transaction",
-                StructType(
-                    [
-                        StructField("transaction_id", StringType(), True),
-                        StructField("reference_id", StringType(), True),
-                        StructField("gateway_name", StringType(), True),
-                        StructField("payment_method", StringType(), True),
-                        StructField("amount", StringType(), True),
-                        StructField("currency", StringType(), True),
-                    ]
-                ),
-                True,
+            True,
+        ),
+        StructField(
+            "transaction",
+            StructType(
+                [
+                    StructField("transaction_id", StringType(), True),
+                    StructField("reference_id", StringType(), True),
+                    StructField("gateway_name", StringType(), True),
+                    StructField("payment_method", StringType(), True),
+                    StructField("amount", StringType(), True),
+                    StructField("currency", StringType(), True),
+                ]
             ),
-            StructField(
-                "payment_gateway_response",
-                StructType(
-                    [
-                        StructField("status_code", StringType(), True),
-                        StructField("approval_code", StringType(), True),
-                    ]
-                ),
-                True,
+            True,
+        ),
+        StructField(
+            "payment_gateway_response",
+            StructType(
+                [
+                    StructField("status_code", StringType(), True),
+                    StructField("approval_code", StringType(), True),
+                ]
             ),
-            StructField(
-                "trace",
-                StructType(
-                    [
-                        StructField("trace_id", StringType(), True),
-                    ]
-                ),
-                True,
+            True,
+        ),
+        StructField(
+            "trace",
+            StructType(
+                [
+                    StructField("trace_id", StringType(), True),
+                ]
             ),
-        ]
-    )
-    return spark.createDataFrame(rows, schema)
+            True,
+        ),
+    ]
+
+    if include_corrupt_record:
+        schema.append(
+            StructField("_corrupt_record", StringType(), True),
+        )
+
+    return spark.createDataFrame(rows, StructType(schema))
 
 
 def test_flatten_and_cast_webhooks_happy_path(spark_session: SparkSession):
@@ -232,3 +244,128 @@ def test_flatten_and_cast_webhooks_null_and_boundary_handling(
     empty_df = _build_raw_df(spark_session, [])
     empty_result = flatten_and_cast_webhooks(empty_df)
     assert empty_result.count() == 0
+
+
+def test_flatten_and_cast_webhooks_preserves_corrupt_record_when_present(spark_session):
+    """verify if _corrupt_record is exist when anomaly is inside webhooks"""
+
+    normal_rows = [
+        {
+            "event_id": "evt_002",
+            "timestamp": "2026-11-13T12:00:00",
+            "environment": "sandbox",
+            "log_level": "warn",
+            "actor": {"ip_address": "10.0.0.1", "user_id": "usr_200"},
+            "event": {"status": "failed"},
+            "transaction": {
+                "transaction_id": "trx_67890",
+                "reference_id": "ref_11223",
+                "gateway_name": "xendit",
+                "payment_method": "credit_card",
+                "amount": "2500000.00",
+                "currency": "USD",
+            },
+            "payment_gateway_response": {
+                "status_code": "500",
+                "approval_code": "app_999",
+            },
+            "trace": {"trace_id": "trc_002"},
+        }
+    ]
+
+    corrupt_rows = [
+        {
+            "_corrupt_record": "INVALID_ID",
+            "event_id": "",
+            "timestamp": "2026-11-13T12:00:00",
+            "environment": "sandbox",
+            "log_level": "INFO",
+            "actor": {"ip_address": "10.0.0.1", "user_id": "usr_200"},
+            "event": {"status": "failed"},
+            "transaction": {
+                "transaction_id": " ",
+                "reference_id": "ref_11223",
+                "gateway_name": "xendit",
+                "payment_method": "credit_card",
+                "amount": "2500000.00",
+                "currency": "BTC",
+            },
+            "payment_gateway_response": {
+                "status_code": "500",
+                "approval_code": "app_999",
+            },
+            "trace": {"trace_id": "trc_002"},
+        }
+    ]
+
+    corrupt_df = _build_raw_df(spark_session, corrupt_rows, True)
+    flatten_df = flatten_and_cast_webhooks(corrupt_df)
+
+    assert "_corrupt_record" in flatten_df.columns
+
+    normal_df = _build_raw_df(spark_session, normal_rows, False)
+    flatten_df = flatten_and_cast_webhooks(normal_df)
+
+    assert "_corrupt_record" not in flatten_df.columns
+
+
+def _make_valid_row(**overrides: Any) -> dict[str, Any]:
+    """make 1 line for flattened webhooks"""
+    rows: dict[str, Any] = {
+        "event_id": "evt_001",
+        "timestamp": datetime(2026, 1, 1, 1, 1, 1),
+        "environment": "production",
+        "log_level": "INFO",
+        "ip_address": "128.123.81.1",
+        "user_id": "user_123456789101",
+        "event_status": "success",
+        "transaction_id": "trx_12371481498",
+        "reference_id": "ref_1231491481",
+        "gateway_name": "midtrans",
+        "payment_method": "bank_transfer",
+        "amount": Decimal(255000),
+        "currency": "USD",
+        "status_code": "200",
+        "approval_code": "APR-219931994",
+        "trace_id": "12318412",
+    }
+
+    # overide row that inputted in parameter
+    rows.update(overrides)
+
+    return rows
+
+
+def _build_flattened_df(
+    spark: SparkSession,
+    rows: list[dict[str, Any]],
+    include_corrupt_record: bool = False,
+) -> DataFrame:
+    fields = [
+        StructField("event_id", StringType(), True),
+        StructField("timestamp", TimestampType(), True),
+        StructField("environment", StringType(), True),
+        StructField("log_level", StringType(), True),
+        StructField("ip_address", StringType(), True),
+        StructField("user_id", StringType(), True),
+        StructField("event_status", StringType(), True),
+        StructField("transaction_id", StringType(), True),
+        StructField("reference_id", StringType(), True),
+        StructField("gateway_name", StringType(), True),
+        StructField("payment_method", StringType(), True),
+        StructField("amount", DecimalType(18, 2), True),
+        StructField("currency", StringType(), True),
+        StructField("status_code", StringType(), True),
+        StructField("approval_code", StringType(), True),
+        StructField("trace_id", StringType(), True),
+    ]
+
+    if include_corrupt_record:
+        fields.append(
+            StructField("_corrupt_record", StringType(), True),
+        )
+
+    return spark.createDataFrame(rows, StructType(fields))
+
+
+# def test_
