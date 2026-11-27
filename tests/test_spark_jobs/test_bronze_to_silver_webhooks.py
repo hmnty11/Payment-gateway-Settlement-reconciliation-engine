@@ -20,6 +20,8 @@ from spark_jobs.bronze_to_silver_webhooks import (
     quarantine_invalid_webhooks,
 )
 
+import pytest
+
 
 def _build_raw_df(
     spark: SparkSession,
@@ -391,3 +393,20 @@ def test_quarantine_splits_valid_and_corrupt_records(spark_session: SparkSession
     assert isinstance(q_row["quarantined_at"], datetime)
     assert q_row["rejection_reason"] == "MALFORMED_JSON"
     assert normal_df.collect()[0]["event_id"] == "evt_001"
+
+
+@pytest.mark.parametrize("test_input", [(None), (""), (" ")])
+def test_quarantine_rejects_missing_and_blank_transaction_id(
+    spark_session: SparkSession, test_input
+):
+    row = [_make_valid_row(transaction_id=test_input)]
+
+    df = _build_flattened_df(spark_session, row, True)
+
+    valid_df, quarantined_df = quarantine_invalid_webhooks(df)
+
+    q_row = quarantined_df.collect()[0]
+
+    assert valid_df.count() == 0
+    assert q_row["transaction_id"] == test_input
+    assert q_row["rejection_reason"] == "MISSING_TRANSACTION_ID"
