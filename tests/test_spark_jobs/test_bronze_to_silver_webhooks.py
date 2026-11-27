@@ -6,6 +6,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Any
 
+import pytest
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.types import (
     DecimalType,
@@ -19,8 +20,6 @@ from spark_jobs.bronze_to_silver_webhooks import (
     flatten_and_cast_webhooks,
     quarantine_invalid_webhooks,
 )
-
-import pytest
 
 
 def _build_raw_df(
@@ -418,7 +417,6 @@ def test_quarantine_rejects_missing_and_blank_transaction_id(
         (None, "INVALID_AMOUNT"),
         (Decimal("0.00"), "ZERO_AMOUNT"),
         (Decimal("-50.12"), "MINUS_AMOUNT"),
-        pytest.param(Decimal("100.00"), "", marks=pytest.mark.xfail),
     ],
 )
 def test_quarantine_rejects_invalid_zero_and_negative_amounts(
@@ -426,7 +424,7 @@ def test_quarantine_rejects_invalid_zero_and_negative_amounts(
 ):
     row = [_make_valid_row(amount=test_input)]
     row.append(_make_valid_row(amount=Decimal("100.00")))
-    df = _build_flattened_df(spark_session, row)
+    df = _build_flattened_df(spark_session, row, True)
 
     valid_df, quarantined_df = quarantine_invalid_webhooks(df)
     q_row = quarantined_df.collect()[0]
@@ -436,3 +434,17 @@ def test_quarantine_rejects_invalid_zero_and_negative_amounts(
     assert v_row["amount"] == Decimal("100.00")
     assert q_row["amount"] == test_input
     assert q_row["rejection_reason"] == expected
+
+
+@pytest.mark.parametrize("test_input", [(None), ("BTC"), (""), ("RUS"), (" ")])
+def test_quarantine_rejects_missing_or_unsupported_currency(
+    spark_session: SparkSession, test_input
+):
+    row = [_make_valid_row(currency=test_input)]
+    df = _build_flattened_df(spark_session, row, True)
+    _, quarantined_df = quarantine_invalid_webhooks(df)
+
+    q_row = quarantined_df.collect()[0]
+
+    assert q_row["currency"] == test_input
+    assert q_row["rejection_reason"] == "INVALID_CURRENCY"
