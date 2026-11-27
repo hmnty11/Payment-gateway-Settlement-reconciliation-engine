@@ -452,15 +452,26 @@ def test_quarantine_rejects_missing_or_unsupported_currency(
 
 def test_quarantine_combines_multiple_rejection_reasons(spark_session: SparkSession):
     row = [
-        _make_valid_row(transaction_id=" ", amount=None, currency="JPY", event_id=None)
+        _make_valid_row(
+            transaction_id=" ",
+            amount=None,
+            currency="JPY",
+            event_id=None,
+            timestamp=None,
+        )
     ]
 
     df = _build_flattened_df(spark_session, row, True)
-    _, quarantined_df = quarantine_invalid_webhooks(df)
+    valid_df, quarantined_df = quarantine_invalid_webhooks(df)
     q_row = quarantined_df.collect()[0]
 
+    assert valid_df.count() == 0
+    assert quarantined_df.count() == 1
     assert q_row["rejection_reason"] != ""
     assert (
         q_row["rejection_reason"]
-        == "MISSING_TRANSACTION_ID; INVALID_AMOUNT; INVALID_CURRENCY; INVALID_ID"
+        == "MISSING_TRANSACTION_ID; INVALID_AMOUNT; MISSING_TIMESTAMP; INVALID_CURRENCY; INVALID_ID"
     )
+
+
+# def test_quarantine_handles_input_without_corrupt_record_column(spark_session: SparkSession):
