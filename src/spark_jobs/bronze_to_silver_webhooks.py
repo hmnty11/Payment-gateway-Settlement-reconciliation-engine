@@ -110,8 +110,8 @@ def quarantine_invalid_webhooks(df: DataFrame) -> tuple[DataFrame, DataFrame]:
         F.lit("INVALID_CURRENCY"),
     )
 
-    check_event_id = (
-        F.when(F.col("event_id").isNull()) | (F.trim(F.col("event_id")) == ""),
+    check_event_id = F.when(
+        (F.col("event_id").isNull()) | (F.trim(F.col("event_id")) == ""),
         F.lit("INVALID_ID"),
     )
 
