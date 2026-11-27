@@ -110,11 +110,17 @@ def quarantine_invalid_webhooks(df: DataFrame) -> tuple[DataFrame, DataFrame]:
         F.lit("INVALID_CURRENCY"),
     )
 
+    check_event_id = (
+        F.when(F.col("event_id").isNull()) | (F.trim(F.col("event_id")) == ""),
+        F.lit("INVALID_ID"),
+    )
+
     rule_list = [
         check_transaction_id,
         check_amount,
         check_time,
         check_currency,
+        check_event_id,
     ]
 
     if "_corrupt_record" in df.columns:
