@@ -410,3 +410,29 @@ def test_quarantine_rejects_missing_and_blank_transaction_id(
     assert valid_df.count() == 0
     assert q_row["transaction_id"] == test_input
     assert q_row["rejection_reason"] == "MISSING_TRANSACTION_ID"
+
+
+@pytest.mark.parametrize(
+    "test_input,expected",
+    [
+        (None, "INVALID_AMOUNT"),
+        (Decimal("0.00"), "ZERO_AMOUNT"),
+        (Decimal("-50.12"), "MINUS_AMOUNT"),
+        pytest.param(Decimal("100.00"), "", marks=pytest.mark.xfail),
+    ],
+)
+def test_quarantine_rejects_invalid_zero_and_negative_amounts(
+    spark_session: SparkSession, test_input, expected
+):
+    row = [_make_valid_row(amount=test_input)]
+    row.append(_make_valid_row(amount=Decimal("100.00")))
+    df = _build_flattened_df(spark_session, row)
+
+    valid_df, quarantined_df = quarantine_invalid_webhooks(df)
+    q_row = quarantined_df.collect()[0]
+    v_row = valid_df.collect()[0]
+
+    assert valid_df.count() == 1
+    assert v_row["amount"] == Decimal("100.00")
+    assert q_row["amount"] == test_input
+    assert q_row["rejection_reason"] == expected
