@@ -2,6 +2,28 @@
 
 <!-- version list -->
 
+## v1.8.1 (2026-11-27)
+
+### Bug Fixes
+
+- **silver**: Labelling for event id
+  ([`7398c94`](https://github.com/hmnty11/Payment-gateway-Settlement-reconciliation-engine/commit/7398c9447f4585548310d420b9096c57705b1b43))
+
+### Testing
+
+- **silver**: Test and validate splist and corrupt record exist
+  ([`9fc531e`](https://github.com/hmnty11/Payment-gateway-Settlement-reconciliation-engine/commit/9fc531e8147aad69c8c082a8a448fcd7421361d8))
+
+- **silver**: Testing reject missing id for transaction_id
+  ([`df871fe`](https://github.com/hmnty11/Payment-gateway-Settlement-reconciliation-engine/commit/df871feb506234536634cc62a547e642df5bf22f))
+
+- **silver**: Testing rejection of multiple invalids data
+  ([`648b8ac`](https://github.com/hmnty11/Payment-gateway-Settlement-reconciliation-engine/commit/648b8ac7db3013ba6c9b38a499c468ccbf3cd67a))
+
+- **silver**: Testing rejects invalid input for amounts
+  ([`9470397`](https://github.com/hmnty11/Payment-gateway-Settlement-reconciliation-engine/commit/947039769bf4c8a7afc795de355c5bc266f032a5))
+
+
 ## v1.8.0 (2026-11-25)
 
 ### Documentation
