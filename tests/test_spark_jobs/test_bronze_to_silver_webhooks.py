@@ -368,4 +368,26 @@ def _build_flattened_df(
     return spark.createDataFrame(rows, StructType(fields))
 
 
-# def test_
+def test_quarantine_splits_valid_and_corrupt_records(spark_session: SparkSession):
+    rows = [_make_valid_row(_corrupt_record="MALFORMED_JSON")]
+    rows.append(_make_valid_row())
+    df = _build_flattened_df(spark_session, rows, True)
+
+    normal_df, quarantined_df = quarantine_invalid_webhooks(df)
+    q_row = quarantined_df.collect()[0]
+
+    assert "_corrupt_record" not in normal_df.columns
+    assert "_corrupt_record" in quarantined_df.columns
+    assert "rejection_reason" in quarantined_df.columns
+    assert "quarantined_at" in quarantined_df.columns
+
+    assert len(normal_df.columns) == 16
+    assert len(quarantined_df.columns) == 19
+
+    assert normal_df.count() == 1
+    assert quarantined_df.count() == 1
+
+    assert q_row["quarantined_at"] is not None
+    assert isinstance(q_row["quarantined_at"], datetime)
+    assert q_row["rejection_reason"] == "MALFORMED_JSON"
+    assert normal_df.collect()[0]["event_id"] == "evt_001"
