@@ -474,4 +474,17 @@ def test_quarantine_combines_multiple_rejection_reasons(spark_session: SparkSess
     )
 
 
-# def test_quarantine_handles_input_without_corrupt_record_column(spark_session: SparkSession):
+def test_quarantine_handles_input_without_corrupt_record_column(
+    spark_session: SparkSession,
+):
+    row = [_make_valid_row()]
+    df = _build_flattened_df(spark_session, row, False)
+
+    valid_df, quarantined_df = quarantine_invalid_webhooks(df)
+
+    assert len(valid_df.columns) == 16
+    assert len(quarantined_df.columns) == 18
+    assert valid_df.count() == 1
+    assert quarantined_df.count() == 0
+    assert "_corrupt_record" not in quarantined_df.columns
+    assert "_corrupt_record" not in valid_df.columns
